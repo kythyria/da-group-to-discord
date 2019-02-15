@@ -75,7 +75,8 @@ export class Api {
     async getGalleryFolders(options : GetFoldersOptions) : Promise<GetGalleryFoldersResult> {
         let response =  await this._client.requestWithClientCredentials({
             url: new URL("./gallery/folders", this._opts.apiRoot),
-            qs: options
+            qs: options,
+            json: true
         });
         
         if(response.statusCode != 200) {
@@ -94,8 +95,27 @@ export class Api {
         let newopts : any = Object.assign({}, options);
         delete newopts.folderid;
         let response =  await this._client.requestWithClientCredentials({
-            url: new URL("./gallery/folders/" + options.folderid, this._opts.apiRoot),
-            qs: newopts
+            url: new URL("./gallery/" + options.folderid, this._opts.apiRoot),
+            qs: newopts,
+            json: true
+        });
+        
+        if(response.statusCode != 200) {
+            throw {
+                response: response,
+                error: new Error("DA API call failed")
+            };
+        }
+
+        else {
+            return response.body;
+        }
+    }
+
+    async getDeviation(id: string) : Promise<DeviationInfo> {
+        let response =  await this._client.requestWithClientCredentials({
+            url: new URL("./deviation/" + id, this._opts.apiRoot),
+            json: true
         });
         
         if(response.statusCode != 200) {
