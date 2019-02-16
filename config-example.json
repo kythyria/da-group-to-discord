@@ -5,7 +5,6 @@
         "clientSecret": "SECRET"
     },
     "discord": {
-        "clientId": "ID",
-        "clientSecret": "SECRET"
+        "botToken": "TOKEN"
     }
 }
