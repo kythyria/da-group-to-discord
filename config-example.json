@@ -1,0 +1,11 @@
+{
+    "dataDirectory": "./var",
+    "deviantart": {
+        "clientId": "ID",
+        "clientSecret": "SECRET"
+    },
+    "discord": {
+        "clientId": "ID",
+        "clientSecret": "SECRET"
+    }
+}
