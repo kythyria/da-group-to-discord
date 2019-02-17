@@ -1,18 +1,10 @@
-import * as deviantart from './deviantart/api';
-import { readFileSync } from 'fs';
+import * as Deviantart from './deviantart/api';
+import { readConfig } from './configuration';
 import * as Discord from 'discord.js';
 
-interface ConfigFile {
-    dataDirectory: string;
-    deviantart: { clientID: string, clientSecret: string };
-    discord: { clientID?: string, clientSecret?: string, botToken: string };
-}
+let config = readConfig();
 
-let configfile = process.argv[2];
-let configdata = readFileSync(configfile, "utf8");
-let config : ConfigFile = JSON.parse(configdata);
-
-let da = new deviantart.Api(config.deviantart.clientID, config.deviantart.clientSecret);
+let da = new Deviantart.Api(config.deviantart.clientID, config.deviantart.clientSecret);
 let discord = new Discord.Client();
 
 discord.on("ready", async () => {
@@ -31,7 +23,11 @@ discord.on("ready", async () => {
 
 discord.on("disconnect", (evt) => {
     console.log("Disconnected:", evt);
-})
+});
+
+discord.on("message", (msg) => {
+
+});
 
 discord.login(config.discord.botToken);
 
