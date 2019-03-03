@@ -1,16 +1,19 @@
 import * as Deviantart from './deviantart/api';
 import { readConfig } from './configuration';
 import * as Discord from 'discord.js';
+import * as cd from './commanddispatcher';
+import { simpleCommands } from './commands';
 
 let config = readConfig();
 
 let da = new Deviantart.Api(config.deviantart.clientID, config.deviantart.clientSecret);
 let discord = new Discord.Client();
+let dispatcher = new cd.CommandDispatcher(simpleCommands);
 
 discord.on("ready", async () => {
     console.log(`Logged in as ${discord.user.tag}!`);
     let appinfo = await discord.fetchApplication();
-    console.log(`Join URL: https://discordapp.com/api/oauth2/authorize?client_id=${appinfo.id}&scope=bot&permissions=1`);
+    console.log(`Join URL: https://discordapp.com/api/oauth2/authorize?client_id=${appinfo.id}&scope=bot`);
     try {
         let dmchannel = await appinfo.owner.createDM();
         await dmchannel.send("Started!");
@@ -26,7 +29,7 @@ discord.on("disconnect", (evt) => {
 });
 
 discord.on("message", (msg) => {
-
+    dispatcher.onMessage(msg);
 });
 
 discord.login(config.discord.botToken);

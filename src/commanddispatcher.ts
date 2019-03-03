@@ -1,4 +1,4 @@
-import { Message, Client as DiscordClient, User } from 'discord.js';
+import { Channel, Message } from 'discord.js';
 import * as StringScanner from './stringscanner';
 
 export enum CommandPermission {
@@ -13,7 +13,7 @@ export interface CommandDefinition {
     description: string;
     params: Parameter[];
     permission: CommandPermission | ((cmd: ParsedCommand) => boolean);
-    exec: ((cmd: ParsedCommand) => boolean);
+    exec: ((cmd: ParsedCommand, provokingMessage: Message) => boolean);
 }
 
 export interface Parameter {
@@ -35,7 +35,15 @@ export interface ParsedCommand {
 
 export interface ParseFailure {
     error: "noSuchCommand" | "genericSyntaxError" | "missingOptionValue" | "tooManyArguments" | "noSuchOption" | "argIsPositional";
-    partialResult?: ParsedCommand
+    partialResult: ParsedCommand
+}
+
+export function isParseFailure(p: ParsedCommand|ParseFailure|null) : p is ParseFailure {
+    return !!p && ('error' in p);
+}
+
+export function isParsedCommand(p: ParsedCommand|ParseFailure|null) : p is ParsedCommand {
+    return !!p && 'commandName' in p;
 }
 
 /* command syntax:
@@ -215,5 +223,53 @@ export class CommandDispatcher {
         }
 
         return result;
+    }
+
+    onMessage(msg: Message) {
+        let cmd : ParsedCommand | ParseFailure | null;
+        let isChannel = msg.channel.type != "dm";
+        cmd = this.parseMessage(msg.content, isChannel ? msg.client.user.id : undefined);
+
+        if(isParseFailure(cmd)) {
+            this.printParseFailMessage(msg, cmd);
+        }
+        else if (isParsedCommand(cmd)) {
+            let commandname = cmd.commandName;
+            let cmddef = this.commands.find(i => i.name == commandname);
+            if(cmddef) {
+                cmddef.exec(cmd, msg);
+            }
+        }
+    }
+
+    printParseFailMessage(msg: Message, cmd: ParseFailure) {
+        let isChannel = msg.channel.type != "dm";
+        let response = "";
+        if (isChannel) {
+            response += `<@${msg.author.id}>, `
+        }
+        response += "error: "
+        switch(cmd.error) {
+            case "genericSyntaxError":
+                response += "Syntax error.";
+                break;
+            case "argIsPositional":
+                response += "Positional argument supplied as a named argument.";
+                break;
+            case "missingOptionValue":
+                response += "Named argument requires a value";
+                break;
+            case "noSuchCommand":
+                response += `\`${cmd.partialResult.commandName}\` is not a recognised command.`;
+                break;
+            case "noSuchOption":
+                response += "Unrecognised named argument.";
+                break;
+            case "tooManyArguments":
+                response += "Too many positional arguments.";
+                break;                
+        }
+
+        msg.channel.sendMessage(response);
     }
 }
