@@ -2,13 +2,13 @@ import * as Deviantart from './deviantart/api';
 import { readConfig } from './configuration';
 import * as Discord from 'discord.js';
 import * as cd from './commanddispatcher';
-import { simpleCommands } from './commands';
+import { simpleCommands, deviantartCommands } from './commands';
 
 let config = readConfig();
 
-let da = new Deviantart.Api(config.deviantart.clientID, config.deviantart.clientSecret);
+let da = new Deviantart.Api(config.deviantart.clientId, config.deviantart.clientSecret);
 let discord = new Discord.Client();
-let dispatcher = new cd.CommandDispatcher(simpleCommands);
+let dispatcher = new cd.CommandDispatcher(Array.prototype.concat(simpleCommands, deviantartCommands(da) ));
 
 discord.on("ready", async () => {
     console.log(`Logged in as ${discord.user.tag}!`);

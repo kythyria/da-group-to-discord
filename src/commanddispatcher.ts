@@ -13,7 +13,7 @@ export interface CommandDefinition {
     description: string;
     params: Parameter[];
     permission: CommandPermission | ((cmd: ParsedCommand) => boolean);
-    exec: ((cmd: ParsedCommand, provokingMessage: Message) => boolean);
+    exec: ((cmd: ParsedCommand, provokingMessage: Message) => Promise<boolean>);
 }
 
 export interface Parameter {
@@ -64,8 +64,7 @@ export class CommandDispatcher {
     }
 
     parseMessage(msg: string, uid? : string) : ParsedCommand|ParseFailure|null {
-        let reHighlight = /<@!?(\d+)>/y;
-        let reComma = /,[^\s]+/y;
+        let reHighlight = /<@!?(\d+)>[,:]?\s+/y;
         let reWord = /()([^\s]+)/y; // to match the quoted sort
         let reWsp = /\s+/y;
         let reNoMoreOptions = /--/y;
@@ -91,14 +90,6 @@ export class CommandDispatcher {
             if(!current || current.matches[1] != uid) {
                 return null;
             }
-        }
-
-        current = scanner({wsp: reWsp, comma: reComma});
-        if(current === false) {
-            return result;
-        }
-        else if(uid && current === null) {
-            return result;
         }
 
         current = scanner({word: reWord});
@@ -128,7 +119,7 @@ export class CommandDispatcher {
         let moreOptions = true;
         let expectOptionValue = false;
         let positionals = cmddef.params.filter(i => ["word", "trailing", "array"].includes(i.type));
-        if(positionals[0].type != "trailing") {
+        if(positionals.length > 0 && positionals[0].type != "trailing") {
             while(current = scanner(tokens)) {
                 if(current === null) {
                     return { error: "genericSyntaxError", partialResult: result };

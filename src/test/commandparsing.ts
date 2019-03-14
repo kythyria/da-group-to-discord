@@ -4,7 +4,7 @@ let commands : CommandDefinition[] = [
     {
         name: "foo",
         description: "Test the parser",
-        exec: (cmd: ParsedCommand) => true,
+        exec: (cmd: ParsedCommand) => Promise.resolve(true),
         permission: CommandPermission.Anyone,
         params: [
             {name: "frobnicate", description: "Twiddle the thing", type: "switch"},
@@ -15,7 +15,7 @@ let commands : CommandDefinition[] = [
     {
         name: "bar",
         description: "Test the parser, redux",
-        exec: (cmd: ParsedCommand) => true,
+        exec: (cmd: ParsedCommand) => Promise.resolve(true),
         permission: CommandPermission.Anyone,
         params: [
             {name: "gadget", description: "Gadget to use", type: "word"},

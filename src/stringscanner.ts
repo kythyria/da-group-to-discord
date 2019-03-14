@@ -26,7 +26,6 @@ export function scan(str: string, start?: number) : (tokens: {[key: string]: Reg
                 break;
             }
         }
-        console.log(token);
         return token;
     };
 }

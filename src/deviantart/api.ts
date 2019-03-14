@@ -87,7 +87,7 @@ export class Api {
         }
 
         else {
-            return response.body;
+            return Promise.resolve(response.body);
         }
     }
 
