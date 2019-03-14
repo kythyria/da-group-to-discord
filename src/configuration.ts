@@ -2,8 +2,8 @@ import * as fs from 'fs';
 
 interface ConfigFile {
     dataDirectory: string;
-    deviantart: { clientID: string, clientSecret: string };
-    discord: { clientID?: string, clientSecret?: string, botToken: string };
+    deviantart: { clientId: string, clientSecret: string };
+    discord: { botToken: string };
 }
 
 export function readConfig(path?: string) : ConfigFile {
