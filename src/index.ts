@@ -29,6 +29,7 @@ discord.on("disconnect", (evt) => {
 });
 
 discord.on("message", (msg) => {
+    if (msg.author.id == discord.user.id) { return; }
     dispatcher.onMessage(msg);
 });
 
