@@ -38,7 +38,9 @@ export interface GetFolderContentsOptions extends Partial<HasMatureFilter>, Part
     folderid : string;
 }
 
-export type GetFolderContentsResult = OffsetPaginatedResult<DeviationInfo>;
+export type GetFolderContentsResult = OffsetPaginatedResult<DeviationInfo> & {
+    name?: string
+};
 export type GetGalleryFoldersResult = OffsetPaginatedResult<GetGalleryFoldersItem>;
 
 export interface ApiOptions {

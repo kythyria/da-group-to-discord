@@ -261,6 +261,6 @@ export class CommandDispatcher {
                 break;                
         }
 
-        msg.channel.sendMessage(response);
+        msg.channel.send(response);
     }
 }

@@ -4,6 +4,8 @@ import * as da from './deviantart/api';
 import { inspect } from 'util';
 import { stringify } from 'querystring';
 
+const DISCORD_MESSAGE_CAP = 2000;
+
 function reply(provokingMessage: Message, content?: any, options?: MessageOptions|RichEmbed|Attachment) : void {
     if(provokingMessage.channel.type == "dm") {
         provokingMessage.channel.send(content, options);
@@ -12,6 +14,23 @@ function reply(provokingMessage: Message, content?: any, options?: MessageOption
         let msg = `<@${provokingMessage.author.id}>`;
         if(content) { msg += ": " + content;}
         provokingMessage.channel.send(msg, options);
+    }
+}
+
+async function longReply(provokingMessage: Message, content: IterableIterator<string>) : Promise<void> {
+    let resultText = "";
+    if(provokingMessage.channel.type != "dm") {
+        resultText += `<@${provokingMessage.author.id}>: `;
+    }
+    for(let i of content) {
+        if ((resultText.length + i.length) > DISCORD_MESSAGE_CAP) {
+            await provokingMessage.channel.send(resultText);
+            resultText = "";
+        }
+        resultText += i;
+    }
+    if(resultText != "") {
+        await provokingMessage.channel.send(resultText);
     }
 }
 
@@ -107,10 +126,44 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
 
                 let galleryId = (args.get("galleryId") || [""])[0];
                 if(!galleryId.match(/^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i)) {
-                    reply(provokingMessage, "")
+                    reply(provokingMessage, "That's not a real UUID");
+                    return Promise.resolve(false);
                 }
                 
+                let offset = Number.parseInt(((args.get("offset")||[""])[0]));
+                if(isNaN(offset)) {
+                    offset = 0;
+                }
+
+                let params : da.GetFolderContentsOptions = {
+                    username: username,
+                    folderid: galleryId,
+                    offset: offset
+                };
                 let res! : da.GetFolderContentsResult;
+                try {
+                    res = await api.getFolder(params);
+                }
+                catch(e) {
+                    reply(provokingMessage, "API call failed:\n```JSON\n" + inspect(e.response.body, { compact: false }) + "\n```");
+                    return Promise.resolve(false);
+                }
+
+                if(res.results.length == 0) {
+                    reply(provokingMessage, `${username} has nothing in that folder.`);
+                    return Promise.resolve(true);
+                }
+
+                let genResponse = function* () : IterableIterator<string> {
+                    yield `Deviations in gallery \u201C${res.name}\u201D (\`${galleryId}\` belonging to ${username}):`;
+                    yield* res.results.map(i => `\n\t\u201C${i.title}\u201D <${i.url}> (\`${i.deviationid}\`)`);
+                    if(res.has_more) {
+                        yield `\nMore results: \`--offset ${res.next_offset}\``;
+                    }
+                }
+                
+                await longReply(provokingMessage, genResponse());
+                return Promise.resolve(true);
             }
         }
     ]
