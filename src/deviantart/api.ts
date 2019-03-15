@@ -1,5 +1,5 @@
 import * as querystring from 'querystring';
-import { DeviationInfo } from './datatypes'
+import * as dt from './datatypes'
 import * as request from 'request-promise-native';
 import { OAuth2Client } from './oauthclient';
 import { Partial } from '../util';
@@ -15,7 +15,7 @@ export interface GetGalleryFoldersItem {
     parent: string | null;
     name: string;
     size?: number;
-    deviations?: DeviationInfo[];
+    deviations?: dt.DeviationInfo[];
 }
 
 export interface HasMatureFilter {
@@ -38,7 +38,7 @@ export interface GetFolderContentsOptions extends Partial<HasMatureFilter>, Part
     folderid : string;
 }
 
-export type GetFolderContentsResult = OffsetPaginatedResult<DeviationInfo> & {
+export type GetFolderContentsResult = OffsetPaginatedResult<dt.DeviationInfo> & {
     name?: string
 };
 export type GetGalleryFoldersResult = OffsetPaginatedResult<GetGalleryFoldersItem>;
@@ -49,6 +49,17 @@ export interface ApiOptions {
     userAgent: string,
     oauthEndpoint: string
 };
+
+export interface DeviationMetadataOptions {
+    ext_submission?: boolean,
+    ext_camera?: boolean,
+    ext_stats?: boolean,
+    ext_collection?: boolean
+}
+
+export interface DeviationMetadataResponse {
+    metadata: dt.DeviationMetadata[]
+}
 
 export class Api {
     private _clientId: string;
@@ -114,9 +125,30 @@ export class Api {
         }
     }
 
-    async getDeviation(id: string) : Promise<DeviationInfo> {
+    async getDeviation(id: string) : Promise<dt.DeviationInfo> {
         let response =  await this._client.requestWithClientCredentials({
             url: new URL("./deviation/" + id, this._opts.apiRoot),
+            json: true
+        });
+        
+        if(response.statusCode != 200) {
+            throw {
+                response: response,
+                error: new Error("DA API call failed")
+            };
+        }
+
+        else {
+            return response.body;
+        }
+    }
+
+    async getDeviationMetadata(ids: string[], opts: DeviationMetadataOptions) : Promise<DeviationMetadataResponse> {
+        let querystring = Object.assign({deviationids: ids}, opts);
+
+        let response =  await this._client.requestWithClientCredentials({
+            url: new URL("./deviation/metadata", this._opts.apiRoot),
+            qs: querystring,
             json: true
         });
         

@@ -3,9 +3,10 @@ import { Message, MessageOptions, RichEmbed, Attachment } from 'discord.js';
 import * as da from './deviantart/api';
 import { inspect } from 'util';
 import { stringify } from 'querystring';
-import { DeviationInfo } from './deviantart/datatypes';
+import * as dt from './deviantart/datatypes';
 
 const DISCORD_MESSAGE_CAP = 2000;
+const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
 
 function reply(provokingMessage: Message, content?: any, options?: MessageOptions|RichEmbed|Attachment) : void {
     if(provokingMessage.channel.type == "dm") {
@@ -181,7 +182,7 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                     return Promise.resolve(false);
                 }
 
-                let response! : DeviationInfo;
+                let response! : dt.DeviationInfo;
                 try {
                     response = await api.getDeviation(devId);
                 }
@@ -203,6 +204,21 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                 if(response.content) {
                     embed.setImage(response.content.src);
                 }
+
+                let metadataResponse! : da.DeviationMetadataResponse;
+                try {
+                    metadataResponse = await api.getDeviationMetadata([devId], {ext_submission: true, ext_stats: true});
+                }
+                catch(e) {
+                    embed.setDescription("`Could not fetch deviation metadata:\n```JSON\n" + inspect(e.response.body, { compact: false }) + "\n```");
+                    reply(provokingMessage, `<response.url>`, embed);
+                    return Promise.resolve(true);
+                }
+                let desc = metadataResponse.metadata[0].description;
+                if(desc.length > DISCORD_MAX_EMBED_DESCRIPTION) {
+                    desc = desc.slice(0, DISCORD_MAX_EMBED_DESCRIPTION) + "...";
+                }
+                embed.setDescription(desc);
                 
                 reply(provokingMessage, `<response.url>`, embed);
                 return Promise.resolve(true);

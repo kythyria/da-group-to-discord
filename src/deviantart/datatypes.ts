@@ -100,3 +100,43 @@ export interface UserInfo {
     stats?: { watchers: number, friends: number };
 }
 
+export interface TagInfo {
+    tag_name: string,
+    sponsored: boolean,
+    sponsor: string
+}
+
+export interface SubmissionInfo {
+    creation_time: string,
+    category: string,
+    file_size: string,
+    resolution: string,
+    submitted_with: {app:string, url:string}
+}
+
+export interface StatsInfo {
+    views: number,
+    views_today: number,
+    favourites: number,
+    comments: number,
+    downloads: number,
+    downloads_today: number
+}
+
+export interface DeviationMetadata {
+    deviationid: string,
+    printid: string|null,
+    author: UserInfo,
+    is_watching: boolean,
+    title: string,
+    description: string,
+    license: string,
+    allows_comments: boolean,
+    tags: TagInfo[],
+    is_favourited: boolean,
+    is_mature: boolean,
+    submission: SubmissionInfo,
+    stats: StatsInfo,
+    camera: object,
+    collections: {folderid: string, name: string}[]
+}
