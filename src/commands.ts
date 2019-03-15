@@ -3,6 +3,7 @@ import { Message, MessageOptions, RichEmbed, Attachment } from 'discord.js';
 import * as da from './deviantart/api';
 import { inspect } from 'util';
 import { stringify } from 'querystring';
+import { DeviationInfo } from './deviantart/datatypes';
 
 const DISCORD_MESSAGE_CAP = 2000;
 
@@ -155,7 +156,7 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                 }
 
                 let genResponse = function* () : IterableIterator<string> {
-                    yield `Deviations in gallery \u201C${res.name}\u201D (\`${galleryId}\` belonging to ${username}):`;
+                    yield `Deviations in gallery \`${galleryId}\` belonging to ${username}:`;
                     yield* res.results.map(i => `\n\t\u201C${i.title}\u201D <${i.url}> (\`${i.deviationid}\`)`);
                     if(res.has_more) {
                         yield `\nMore results: \`--offset ${res.next_offset}\``;
@@ -163,6 +164,47 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                 }
                 
                 await longReply(provokingMessage, genResponse());
+                return Promise.resolve(true);
+            }
+        },
+        {
+            name: "embeddeviation",
+            description: "Generate the embed for a deviation by UUID",
+            permission: cd.CommandPermission.Anyone,
+            params: [
+                {name: "deviation", description: "Deviation UUID", type: "word"}
+            ],
+            exec: async (cmd: cd.ParsedCommand, provokingMessage: Message) : Promise<boolean> => {
+                let devId = cmd.arguments[0][1];
+                if(!devId.match(/^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i)) {
+                    reply(provokingMessage, "That's not a real UUID");
+                    return Promise.resolve(false);
+                }
+
+                let response! : DeviationInfo;
+                try {
+                    response = await api.getDeviation(devId);
+                }
+                catch(e) {
+                    reply(provokingMessage, "API call failed:\n```JSON\n" + inspect(e.response.body, { compact: false }) + "\n```");
+                    return Promise.resolve(false);
+                }
+
+                let embed = new RichEmbed().setFooter("deviantART");
+                if(response.author) {
+                    embed.setAuthor(response.author.username, response.author.usericon);
+                }
+                if(response.title) {
+                    embed.setTitle(response.title);
+                }
+                if(response.url) {
+                    embed.setURL(response.url);
+                }
+                if(response.content) {
+                    embed.setImage(response.content.src);
+                }
+                
+                reply(provokingMessage, `<response.url>`, embed);
                 return Promise.resolve(true);
             }
         }
