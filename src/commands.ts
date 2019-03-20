@@ -4,6 +4,7 @@ import * as da from './deviantart/api';
 import { inspect } from 'util';
 import { stringify } from 'querystring';
 import * as dt from './deviantart/datatypes';
+import { daHtmlToDfm } from './formatconverter';
 
 const DISCORD_MESSAGE_CAP = 2000;
 const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
@@ -191,7 +192,23 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                     return Promise.resolve(false);
                 }
 
-                let embed = new RichEmbed().setFooter("deviantART");
+                let embed = new RichEmbed();
+                if (response.published_time) {
+                    let pubtime = new Date(Number.parseInt(response.published_time) * 1000);
+                    let timestr = pubtime.toLocaleString("en-GB-u-hc-h23", {
+                       timeZone: "UTC",
+                       year: "numeric",
+                       month: "long",
+                       day: "numeric",
+                       hour: "2-digit",
+                       minute: "2-digit",
+                       hour12: false 
+                    });
+                    embed.setFooter(`Posted to deviantART on ${timestr}`, "https://st.deviantart.net/emoticons/d/deviantart.png");
+                }
+                else {
+                    embed.setFooter(`Posted to deviantART at an unknown time`, "https://st.deviantart.net/emoticons/d/deviantart.png");
+                }
                 if(response.author) {
                     embed.setAuthor(response.author.username, response.author.usericon);
                 }
@@ -214,13 +231,14 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                     reply(provokingMessage, `<response.url>`, embed);
                     return Promise.resolve(true);
                 }
-                let desc = metadataResponse.metadata[0].description;
+                let rawdesc = metadataResponse.metadata[0].description;
+                let desc = daHtmlToDfm(rawdesc);
                 if(desc.length > DISCORD_MAX_EMBED_DESCRIPTION) {
                     desc = desc.slice(0, DISCORD_MAX_EMBED_DESCRIPTION) + "...";
                 }
                 embed.setDescription(desc);
                 
-                reply(provokingMessage, `<response.url>`, embed);
+                reply(provokingMessage, `<${response.url}>`, embed);
                 return Promise.resolve(true);
             }
         }
