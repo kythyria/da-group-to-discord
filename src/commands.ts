@@ -5,6 +5,7 @@ import { inspect } from 'util';
 import { stringify } from 'querystring';
 import * as dt from './deviantart/datatypes';
 import { daHtmlToDfm } from './formatconverter';
+import { makeEmbedForDeviation } from './embedmaker'
 
 const DISCORD_MESSAGE_CAP = 2000;
 const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
@@ -192,52 +193,20 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                     return Promise.resolve(false);
                 }
 
-                let embed = new RichEmbed();
-                if (response.published_time) {
-                    let pubtime = new Date(Number.parseInt(response.published_time) * 1000);
-                    let timestr = pubtime.toLocaleString("en-GB-u-hc-h23", {
-                       timeZone: "UTC",
-                       year: "numeric",
-                       month: "long",
-                       day: "numeric",
-                       hour: "2-digit",
-                       minute: "2-digit",
-                       hour12: false 
-                    });
-                    embed.setFooter(`Posted to deviantART on ${timestr}`, "https://st.deviantart.net/emoticons/d/deviantart.png");
-                }
-                else {
-                    embed.setFooter(`Posted to deviantART at an unknown time`, "https://st.deviantart.net/emoticons/d/deviantart.png");
-                }
-                if(response.author) {
-                    embed.setAuthor(response.author.username, response.author.usericon);
-                }
-                if(response.title) {
-                    embed.setTitle(response.title);
-                }
-                if(response.url) {
-                    embed.setURL(response.url);
-                }
-                if(response.content) {
-                    embed.setImage(response.content.src);
-                }
-
-                let metadataResponse! : da.DeviationMetadataResponse;
+                let metadataResponse : da.DeviationMetadataResponse;
+                let metadata! : dt.DeviationMetadata;
                 try {
                     metadataResponse = await api.getDeviationMetadata([devId], {ext_submission: true, ext_stats: true});
+                    metadata = metadataResponse.metadata[0];
                 }
                 catch(e) {
-                    embed.setDescription("`Could not fetch deviation metadata:\n```JSON\n" + inspect(e.response.body, { compact: false }) + "\n```");
-                    reply(provokingMessage, `<response.url>`, embed);
+                    let embed = makeEmbedForDeviation(response);
+                    let message = `<${response.url}>\nCould not fetch deviation metadata:\n\`\`\`JSON\n${inspect(e.response.body, { compact: false })}\n\`\`\``;
+                    reply(provokingMessage, message, embed);
                     return Promise.resolve(true);
                 }
-                let rawdesc = metadataResponse.metadata[0].description;
-                let desc = daHtmlToDfm(rawdesc);
-                if(desc.length > DISCORD_MAX_EMBED_DESCRIPTION) {
-                    desc = desc.slice(0, DISCORD_MAX_EMBED_DESCRIPTION) + "...";
-                }
-                embed.setDescription(desc);
-                
+                let embed = makeEmbedForDeviation(response, metadataResponse.metadata[0]);
+
                 reply(provokingMessage, `<${response.url}>`, embed);
                 return Promise.resolve(true);
             }
