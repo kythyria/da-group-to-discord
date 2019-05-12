@@ -75,6 +75,8 @@ export class Api {
         userAgent: 'lightningphoenixs-deviantart-client/0.5'
     }
     readonly DEVIANTART_API_MINOR_VERSION = 20160316;
+    readonly GETMETADATA_CHUNK_SIZE = 50;
+    readonly GETMETADATA_EXTENDED_CHUNK_SIZE = 10;
 
     constructor(clientId: string, clientSecret: string, opts?: Partial<ApiOptions> ) {
         this._clientId = clientId;
