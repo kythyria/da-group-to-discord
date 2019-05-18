@@ -6,6 +6,8 @@ import { stringify } from 'querystring';
 import * as dt from './deviantart/datatypes';
 import { daHtmlToDfm } from './formatconverter';
 import { makeEmbedForDeviation } from './embedmaker'
+import { ConfigFile } from './configuration';
+import { Poller } from './poller';
 
 const DISCORD_MESSAGE_CAP = 2000;
 const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
@@ -67,7 +69,7 @@ export let simpleCommands : cd.CommandDefinition[] = [
     }
 ];
 
-export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
+export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.CommandDefinition[] {
     return [
         {
             name: "galleryfolders",
@@ -208,6 +210,17 @@ export function deviantartCommands(api : da.Api) : cd.CommandDefinition[] {
                 let embed = makeEmbedForDeviation(response, metadataResponse.metadata[0]);
 
                 reply(provokingMessage, `<${response.url}>`, embed);
+                return Promise.resolve(true);
+            }
+        },
+        {
+            name: "dopoll",
+            description: "Manually invoke the polling/notification system",
+            permission: cd.CommandPermission.Anyone,
+            params: [],
+            exec: async (cmd: cd.ParsedCommand, provokingMessage: Message) : Promise<boolean> => {
+                let poller = new Poller(config, provokingMessage.client, api);
+                await poller.poll();
                 return Promise.resolve(true);
             }
         }

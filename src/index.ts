@@ -8,7 +8,7 @@ let config = readConfig();
 
 let da = new Deviantart.Api(config.deviantart.clientId, config.deviantart.clientSecret);
 let discord = new Discord.Client();
-let dispatcher = new cd.CommandDispatcher(Array.prototype.concat(simpleCommands, deviantartCommands(da) ));
+let dispatcher = new cd.CommandDispatcher(Array.prototype.concat(simpleCommands, deviantartCommands(da, config) ));
 
 discord.on("ready", async () => {
     console.log(`Logged in as ${discord.user.tag}!`);

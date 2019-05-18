@@ -71,7 +71,8 @@ export class Poller {
         this._discord = discord;
         this._da = deviantart;
 
-        this._cache = new IdCache(path.join(config.dataDirectory, "pollcache.json"), config.maxIdCache)
+        this._cache = new IdCache(path.join(config.dataDirectory, "pollcache.json"), config.maxIdCache);
+        this._cache.load();
     }
 
     buildWorkList() : Map<string, PollWorkItem> {
@@ -126,6 +127,7 @@ export class Poller {
 
             await Promise.all(promises);
         }
+        await this._cache.save();
     }
 
     async getNewDeviations(username: string, collection: string) : Promise<CollectedDeviation[]> {
