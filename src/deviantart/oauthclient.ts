@@ -2,6 +2,7 @@ import * as https from 'https';
 import * as querystring from 'querystring';
 import request from 'request-promise-native';
 import * as errors from 'request-promise-native/errors';
+import { URL } from 'url';
 
 interface BearerToken {
     access_token: string;

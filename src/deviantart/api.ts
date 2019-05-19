@@ -3,6 +3,7 @@ import * as dt from './datatypes'
 import * as request from 'request-promise-native';
 import { OAuth2Client } from './oauthclient';
 import { Partial } from '../util';
+import { URL } from 'url';
 
 export interface OffsetPaginatedResult<T> {
     has_more: boolean;
