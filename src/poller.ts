@@ -22,7 +22,8 @@ interface PollWorkItemChannel {
 }
 
 type CollectedDeviation = dat.DeviationInfo & {
-    collection: string
+    collection: string,
+    collectionName: string;
 };
 
 type DeviationWithMetadata = CollectedDeviation & {
@@ -103,6 +104,8 @@ export class Poller {
             deviations = deviations.concat(await this.getNewDeviations(i[1].username, i[1].collection));
         }
         deviations = deviations.reverse();
+        deviations = deviations.slice(0, this._conf.maxNewDeviations);
+
         let ad = await this.augmentDeviations(deviations);
 
         let withEmbeds = ad.map( i => ({...i, embed: makeEmbedForDeviation(i, i.metadata)}));
@@ -121,13 +124,12 @@ export class Poller {
                     let chan = getChannel(this._discord, j.channel);
                     if(!chan) { continue; }
                     
-                    promises.push(chan.send(`Added to \`${workitem.username}/${workitem.collection}\`: <${i.url}>`, i.embed));
+                    await chan.send(`Added to \`${workitem.username}/${i.collectionName}\`: <${i.url}>`, i.embed);
                 }
             }
-
-            await Promise.all(promises);
+            this._cache.add(i.collection, i.deviationid);
+            await this._cache.save();
         }
-        await this._cache.save();
     }
 
     async getNewDeviations(username: string, collection: string) : Promise<CollectedDeviation[]> {
@@ -135,10 +137,8 @@ export class Poller {
 
         let seenCount = 0;
         for await (let i of this.getDeviations(username, collection)) {
-            if (++seenCount > this._conf.maxNewDeviations) { break; }
             if (this._cache.testSeen(collection, i.deviationid)) { break; }
             collected.push(i);
-            this._cache.add(collection, i.deviationid);
         }
 
         return collected;
@@ -147,11 +147,12 @@ export class Poller {
     async* getDeviations(username: string, collection: string) : AsyncIterableIterator<CollectedDeviation> {
         let requestoptions : da.GetFolderContentsOptions = {
             folderid: collection,
-            username: username
+            username: username,
+            matureContent: true
         }
         while(true) {
             let folderpage = await this._da.getFolder(requestoptions);
-            yield* folderpage.results.map(i => Object.assign({collection: collection}, i));
+            yield* folderpage.results.map(i => Object.assign({collection: collection, collectionName: folderpage.name||collection}, i));
             if(!folderpage.has_more) { break; }
             requestoptions.offset = folderpage.next_offset;
         }

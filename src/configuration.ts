@@ -21,7 +21,7 @@ export interface ConfigFile {
     // the mappings say to only care about innocent posts.
     maxIdCache: number;
 
-    // If we see this many deviations in the same folder without getting to a recognised one, give up.
+    // Number of deviations to post in a single poll cycle.
     maxNewDeviations: number;
 }
 

@@ -17,7 +17,8 @@ and i worked my best on it! Even the background i am happy with!
 Thank you so much for the commission and for letting me draw your sexy mare! I look forward to working with you again, friend! ^^<br />If you like you can commission for yourself! Just pm me! <br />Please comment and favorite! Your feedback is always welcome!"
 */
 export let emojiByDaEmoticon : Map<string, string> = new Map([
-    ["https://e.deviantart.net/emoticons/b/biggrin.gif", "😀"]
+    ["https://e.deviantart.net/emoticons/b/biggrin.gif", "😀"],
+    ["https://e.deviantart.net/emoticons/h/heart.gif", "❤️"],
 ]);
 
 interface daHtmlState {
