@@ -12,7 +12,11 @@
             "args": ["${workspaceFolder}/config.json"],
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
-            ]
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "smartStep": true
         }
     ]
 }

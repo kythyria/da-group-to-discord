@@ -54,6 +54,8 @@ export function daHtmlToDfm(input: string) : string {
             case "#text":
                 yield escapeText(i.value);
                 break;
+            case "#comment":
+                break;            
             case "br":
                 yield "\n";
                 break;
