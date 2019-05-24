@@ -148,7 +148,7 @@ export class Poller {
         let requestoptions : da.GetFolderContentsOptions = {
             folderid: collection,
             username: username,
-            matureContent: true
+            mature_content: true
         }
         while(true) {
             let folderpage = await this._da.getFolder(requestoptions);

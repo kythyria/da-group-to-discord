@@ -20,7 +20,7 @@ export interface GetGalleryFoldersItem {
 }
 
 export interface HasMatureFilter {
-    matureContent? : boolean;
+    mature_content? : boolean;
 }
 
 export interface OffsetPaginatedRequest {
