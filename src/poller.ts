@@ -98,6 +98,8 @@ export class Poller {
     }
 
     async poll() : Promise<void> {
+        this.startTyping();
+
         let colls = this.buildWorkList();
         let deviations : CollectedDeviation[] = []
         for(let i of colls) {
@@ -129,6 +131,7 @@ export class Poller {
             }
             this._cache.add(i.collection, i.deviationid);
             await this._cache.save();
+            this.stopTyping();
         }
     }
 
@@ -193,5 +196,21 @@ export class Poller {
         }
 
         return Promise.resolve(output);
+    }
+
+    startTyping() : void {
+        let chans = unique(this._conf.notifyMappings.map(i => i.channel));
+        for (let i of chans) {
+            let chan = getChannel(this._discord, i);
+            if(chan) { chan.startTyping(); }
+        }
+    }
+
+    stopTyping() : void {
+        let chans = unique(this._conf.notifyMappings.map(i => i.channel));
+        for (let i of chans) {
+            let chan = getChannel(this._discord, i);
+            if(chan) { chan.stopTyping(true); }
+        }
     }
 }
