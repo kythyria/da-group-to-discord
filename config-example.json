@@ -5,6 +5,18 @@
         "clientSecret": "SECRET"
     },
     "discord": {
-        "botToken": "TOKEN"
-    }
+        "botToken": "SECRET"
+    },
+    "pollInterval": 300000,
+    "notifyMappings": [
+        {
+            "username": "example",
+            "collectionId": "00000000-0000-0000-0000-000000000000",
+            "channel": "SNOWFLAKE",
+            "maturity": "innocent",
+            "deviationType": "all"
+        }
+    ],
+    "maxIdCache": 20,
+    "maxNewDeviations": 10
 }
