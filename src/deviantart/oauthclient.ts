@@ -3,6 +3,7 @@ import * as querystring from 'querystring';
 import request from 'request-promise-native';
 import * as errors from 'request-promise-native/errors';
 import { URL } from 'url';
+import { promises } from 'fs';
 
 interface BearerToken {
     access_token: string;
@@ -91,21 +92,39 @@ export class OAuth2Client {
     }
 
     async refreshClientAccessToken() : Promise<void> {
-        if(Date.now() > this._clientTokenExpiresAt || !this._clientAccessToken) {
-            let response = await this.getClientCredentialsRequest();
+        let response = await this.getClientCredentialsRequest();
 
-            this._clientAccessToken = response;
-            let expires = this._clientAccessToken.expires_in || 3600;
-            this._clientTokenExpiresAt = Date.now() + expires*1000;
-        }
+        this._clientAccessToken = response;
+        let expires = this._clientAccessToken.expires_in || 3600;
+        this._clientTokenExpiresAt = Date.now() + expires*1000;
+        return Promise.resolve();
     }
 
     async requestWithClientCredentials(opts : request.OptionsWithUrl) : Promise<request.FullResponse> {
-        await this.refreshClientAccessToken();
+        if(Date.now() >= this._clientTokenExpiresAt || !this._clientAccessToken) {
+            await this.refreshClientAccessToken();
+        }
         let newopts = Object.assign({}, opts);
         newopts.qs = Object.assign({
             access_token: this._clientAccessToken.access_token
         }, opts.qs);
-        return await this.requestWithRetries(newopts);
+        let response = await this.requestWithRetries(newopts);
+        if (response.statusCode == 401 && response.body.error == "invalid_token") {
+            // we are PROBALBLY in the "token expired" case.
+            // the only way to tell is examining a human-readable error, so we'll
+            // just guess.
+            await this.refreshClientAccessToken();
+            newopts.qs.access_token = this._clientAccessToken.access_token
+            response = await this.requestWithRetries(newopts);
+
+            if (response.statusCode == 401 && response.body.error == "invalid_token") {
+                return Promise.reject({
+                    request: newopts,
+                    response: response,
+                    error: new Error("Got invalid token even after refreshing")
+                });
+            }
+        }
+        return Promise.resolve(response);
     }
 }
