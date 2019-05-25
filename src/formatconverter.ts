@@ -58,6 +58,7 @@ export function daHtmlToDfm(input: string) : string {
                 else {
                     yield `[image]`
                 }
+                break;
             default:
                 yield* mapStateMany(i.childNodes, state, palpableItem);
                 break;
