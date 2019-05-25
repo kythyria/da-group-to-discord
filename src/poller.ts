@@ -143,8 +143,8 @@ export class Poller {
             }
             this._cache.add(i.collection, i.deviationid);
             await this._cache.save();
-            this.stopTyping();
         }
+        this.stopTyping();
     }
 
     async getNewDeviations(username: string, collection: string) : Promise<CollectedDeviation[]> {
