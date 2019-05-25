@@ -28,6 +28,7 @@ let timer : NodeJS.Timer | undefined = undefined;
 discord.on("ready", async () => {
     console.log(`Logged in as ${discord.user.tag}!`);
     let appinfo = await discord.fetchApplication();
+    dispatcher.ownerId = appinfo.owner.id;
     console.log(`Join URL: https://discordapp.com/api/oauth2/authorize?client_id=${appinfo.id}&scope=bot`);
     try {
         dmchannel = await appinfo.owner.createDM();

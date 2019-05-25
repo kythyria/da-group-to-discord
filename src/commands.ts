@@ -216,7 +216,7 @@ export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.Comma
         {
             name: "dopoll",
             description: "Manually invoke the polling/notification system",
-            permission: cd.CommandPermission.Anyone,
+            permission: cd.CommandPermission.Owner,
             params: [],
             exec: async (cmd: cd.ParsedCommand, provokingMessage: Message) : Promise<boolean> => {
                 let poller = new Poller(config, provokingMessage.client, api);

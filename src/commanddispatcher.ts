@@ -2,9 +2,16 @@ import { Channel, Message } from 'discord.js';
 import * as StringScanner from './stringscanner';
 
 export enum CommandPermission {
+    // Sender must be owner of the bot instance.
     Owner = "owner",
+
+    // Not implemented
     GuildAdmin = "guildAdmin",
+
+    // Not implemented
     GuildModerator = "guildModerator",
+
+    // Absolutely anyone
     Anyone = "anyone"
 }
 
@@ -12,7 +19,7 @@ export interface CommandDefinition {
     name: string;
     description: string;
     params: Parameter[];
-    permission: CommandPermission | ((cmd: ParsedCommand) => boolean);
+    permission: CommandPermission | ((cmd: ParsedCommand, provokingMessage: Message) => boolean);
     exec: ((cmd: ParsedCommand, provokingMessage: Message) => Promise<boolean>);
 }
 
@@ -55,12 +62,13 @@ export function isParsedCommand(p: ParsedCommand|ParseFailure|null) : p is Parse
 <code-span>   := /(`+)(.+)\1/
 */
 
-
 export class CommandDispatcher {
     commands: CommandDefinition[];
+    ownerId: string;
 
     constructor(cmds: CommandDefinition[]) {
         this.commands = cmds;
+        this.ownerId = "";
     }
 
     parseMessage(msg: string, uid? : string) : ParsedCommand|ParseFailure|null {
@@ -228,9 +236,30 @@ export class CommandDispatcher {
             let commandname = cmd.commandName;
             let cmddef = this.commands.find(i => i.name == commandname);
             if(cmddef) {
+                if(!this.checkPermissions(msg, cmd, cmddef)) {
+                    let isChannel = msg.channel.type != "dm";
+                    let response = "";
+                    if (isChannel) {
+                        response += `<@${msg.author.id}>, `
+                    }
+                    response += "Insufficient permissions";
+                    msg.channel.send(response);
+                    return;
+                }
                 cmddef.exec(cmd, msg);
             }
         }
+    }
+
+    checkPermissions(msg: Message, cmd: ParsedCommand, cmddef: CommandDefinition) : boolean {
+        if(typeof(cmddef.permission) == "function") {
+            return cmddef.permission(cmd, msg);
+        }
+
+        if(cmddef.permission == CommandPermission.Anyone) { return true; }
+        if(msg.author.id == this.ownerId) { return true; }
+
+        return false;
     }
 
     printParseFailMessage(msg: Message, cmd: ParseFailure) {
