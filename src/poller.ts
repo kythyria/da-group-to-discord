@@ -3,7 +3,6 @@ import * as da from './deviantart/api'
 import * as dat from './deviantart/datatypes';
 import * as conf from './configuration';
 import { unique, slices } from './util';
-import { stringify } from "querystring";
 import * as path from "path";
 import { IdCache } from "./idcache";
 import { makeEmbedForDeviation } from "./embedmaker";
@@ -61,11 +60,15 @@ function getChannel(discord : Discord.Client, key: string) : Discord.TextChannel
  * Save the ID cache // here so that a crash doesn't eat anything. At-least-once rather than at-most-once
  */
 
+ const COLLECTION_NAME_UPDATE_INTERVAL = 4
+
 export class Poller {
     _conf : conf.ConfigFile;
     _discord : Discord.Client;
     _da : da.Api;
     _cache : IdCache;
+    _collectionNames : Map<string, string>;
+    _collectionNameTimer: number;
 
     constructor(config : conf.ConfigFile, discord : Discord.Client, deviantart : da.Api) {
         this._conf = config;
@@ -74,6 +77,9 @@ export class Poller {
 
         this._cache = new IdCache(path.join(config.dataDirectory, "pollcache.json"), config.maxIdCache);
         this._cache.load();
+
+        this._collectionNames = new Map();
+        this._collectionNameTimer = 0;
     }
 
     buildWorkList() : Map<string, PollWorkItem> {
@@ -100,6 +106,14 @@ export class Poller {
     async poll() : Promise<void> {
         this.startTyping();
 
+        if(this._collectionNameTimer <= 0) {
+            await this.populateCollectionNames();
+            this._collectionNameTimer = COLLECTION_NAME_UPDATE_INTERVAL;
+        }
+        else {
+            this._collectionNameTimer--;
+        }
+
         let colls = this.buildWorkList();
         let deviations : CollectedDeviation[] = []
         for(let i of colls) {
@@ -125,7 +139,7 @@ export class Poller {
                 ) {
                     let chan = getChannel(this._discord, j.channel);
                     if(!chan) { continue; }
-                    
+
                     await chan.send(`Added to \`${workitem.username}/${i.collectionName}\`: <${i.url}>`, i.embed);
                 }
             }
@@ -155,7 +169,8 @@ export class Poller {
         }
         while(true) {
             let folderpage = await this._da.getFolder(requestoptions);
-            yield* folderpage.results.map(i => Object.assign({collection: collection, collectionName: folderpage.name||collection}, i));
+            let collectionName = folderpage.name || this._collectionNames.get(collection) || collection;
+            yield* folderpage.results.map(i => Object.assign({collection, collectionName}, i));
             if(!folderpage.has_more) { break; }
             requestoptions.offset = folderpage.next_offset;
         }
@@ -211,6 +226,38 @@ export class Poller {
         for (let i of chans) {
             let chan = getChannel(this._discord, i);
             if(chan) { chan.stopTyping(true); }
+        }
+    }
+
+    async populateCollectionNames() : Promise<void> {
+        let users = unique(this._conf.notifyMappings.map(i => i.username));
+        for(let i of users) {
+            let off = 0;
+            while(true) {
+                let requestOptions : da.GetFoldersOptions = {
+                    username: i,
+                    calculateSize: false,
+                    preload: false,
+                    limit: 50,
+                    offset: off
+                };
+                try {
+                    let result = await this._da.getGalleryFolders(requestOptions);
+                    for(let i of result.results) {
+                        this._collectionNames.set(i.folderid, i.name);
+                    }
+                    if(result.has_more) {
+                        off += 50;
+                    }
+                    else {
+                        break; 
+                    }
+                }
+                catch(e) {
+                    console.log("Failed to get collection names for %s with offset %d", i, off);
+                    break;
+                }
+            }
         }
     }
 }
