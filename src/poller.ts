@@ -16,8 +16,7 @@ interface PollWorkItem {
 
 interface PollWorkItemChannel {
     channel: string,
-    maturity: conf.MaturityFilter,
-    deviationType: conf.DeviationType
+    maturity: conf.MaturityFilter
 }
 
 type CollectedDeviation = dat.DeviationInfo & {
@@ -96,8 +95,7 @@ export class Poller {
             let item = list.get(i.collectionId)!;
             item.channels.push({
                 channel: i.channel,
-                maturity: i.maturity,
-                deviationType: i.deviationType
+                maturity: i.maturity
             });
         }
         return list;
@@ -135,7 +133,7 @@ export class Poller {
             for(let j of workitem.channels) {
                 if((j.maturity == "mature" && i.is_mature)
                     || (j.maturity == "innocent" && !i.is_mature)
-                    || j.maturity == "all"
+                    || (j.maturity == "all")
                 ) {
                     let chan = getChannel(this._discord, j.channel);
                     if(!chan) { continue; }

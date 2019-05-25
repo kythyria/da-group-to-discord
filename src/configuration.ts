@@ -38,13 +38,9 @@ export interface PollMapping {
 
     // Generate posts for everything, only mature, or only SFW things?
     maturity: MaturityFilter,
-
-    // Generate posts for images, only literature, or everything?
-    deviationType: DeviationType
 }
 
 export type MaturityFilter = "all" | "mature" | "innocent";
-export type DeviationType = "image" | "literature" | "all";
 
 export function readConfig(path?: string) : ConfigFile {
     let configfile = path || process.argv[2];

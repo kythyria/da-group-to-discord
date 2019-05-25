@@ -13,8 +13,7 @@
             "username": "example",
             "collectionId": "00000000-0000-0000-0000-000000000000",
             "channel": "SNOWFLAKE",
-            "maturity": "innocent",
-            "deviationType": "all"
+            "maturity": "innocent"
         }
     ],
     "maxIdCache": 20,
