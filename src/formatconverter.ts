@@ -1,21 +1,5 @@
 import * as p5 from 'parse5';
-import { ENGINE_METHOD_PKEY_METHS } from 'constants';
-/*
-"\"That is right... you like &nbsp;it, do you not?\" <br />
-<br />
-Wow.. so for this! This is a piece i have done for the incredible 
-<span class=\"username-with-symbol u\">
-    <a class=\"u regular username\" href=\"https://www.deviantart.com/fireskyfox\">FireSkyFox</a>
-    <span class=\"user-symbol regular\" data-quicktip-text=\"\" data-show-tooltip=\"\" data-gruser-type=\"regular\"></span>
-</span>
- !! :\"D
-<br />
-<br />
-They have provided me with the amazing opportunity to draw they're oc in such a naught way! I am so pleased in the way this has turned out, 
-and i worked my best on it! Even the background i am happy with! 
-<img src=\"https://e.deviantart.net/emoticons/b/biggrin.gif\" width=\"15\" height=\"15\" alt=\":D\" data-embed-type=\"emoticon\" data-embed-id=\"366\" title=\":D (Big Grin)\"/> <br /><br />
-Thank you so much for the commission and for letting me draw your sexy mare! I look forward to working with you again, friend! ^^<br />If you like you can commission for yourself! Just pm me! <br />Please comment and favorite! Your feedback is always welcome!"
-*/
+
 export let emojiByDaEmoticon : Map<string, string> = new Map([
     ["https://e.deviantart.net/emoticons/b/biggrin.gif", "😀"],
     ["https://e.deviantart.net/emoticons/h/heart.gif", "❤️"],
@@ -63,7 +47,13 @@ export function daHtmlToDfm(input: string) : string {
             case "img":
                 let alt = i.attrs.find((j :any) => j.name == "alt");
                 if(alt) {
-                    yield alt.value;
+                    let m = /:icon(.*):/.exec(alt.value);
+                    if (m) {
+                        yield m[1];
+                    }
+                    else {
+                        yield alt.value;
+                    }
                 }
                 else {
                     yield `[image]`
