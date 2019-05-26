@@ -27,7 +27,8 @@ export interface ConfigFile {
 
 export interface PollMapping {
     // name of user that owns the collection to probe.
-    username: string
+    username: string,
+
     // UUID of the collection. Ask the bot `galleryfolders <username>` to
     // find these
     collectionId: string,
@@ -38,7 +39,14 @@ export interface PollMapping {
 
     // Generate posts for everything, only mature, or only SFW things?
     maturity: MaturityFilter,
+
+    // What kinds of post to include
+    deviationTypes: TypeFilter
 }
+
+// "literature" goes by having an excerpt (~ the thumbnail is text), not by being in
+// the category "Literature".
+export type TypeFilter = "all" | "literature" | "nonliterature";
 
 export type MaturityFilter = "all" | "mature" | "innocent";
 

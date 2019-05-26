@@ -1,7 +1,5 @@
 import { RichEmbed } from "discord.js";
-import * as discord from "discord.js";
 import * as dat from './deviantart/datatypes';
-import { inspect } from 'util';
 import { daHtmlToDfm } from './formatconverter';
 
 const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
@@ -33,8 +31,18 @@ export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, metadata? : d
     if(devinfo.url) {
         embed.setURL(devinfo.url);
     }
+
     if(devinfo.content) {
         embed.setImage(devinfo.content.src);
+    }
+    else if (devinfo.thumbs && devinfo.thumbs.length >= 1) {
+        let ordered = devinfo.thumbs.sort((a,b) => {
+            let l = a.width, r = b.width;
+            if (l > r) { return 1; }
+            if (l < r) { return -1; }
+            return 0;
+        });
+        embed.setImage(ordered[0].src);
     }
 
     if(!metadata) {
