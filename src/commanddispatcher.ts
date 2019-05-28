@@ -1,5 +1,6 @@
 import { Channel, Message } from 'discord.js';
 import * as StringScanner from './stringscanner';
+import { tryParseURL } from './util';
 
 export enum CommandPermission {
     // Sender must be owner of the bot instance.
@@ -136,12 +137,21 @@ export class CommandDispatcher {
                     continue;
                 }
                 else if(current.type == "word" || current.type == "quoted" || current.type == "codespan") {
+                    let text = current.matches[2];
+
+                    if(current.type == "word") {
+                        let m = /^<([^\s]+)>$/.exec(text);
+                        if(m && tryParseURL(m[1])) {
+                            text = m[1];
+                        }
+                    }
+
                     if(expectOptionValue) {
-                        result.arguments[result.arguments.length - 1 ].push(current.matches[2]);
+                        result.arguments[result.arguments.length - 1 ].push(text);
                         expectOptionValue = false;
                     }
                     else if(positionals.length > 0) {
-                        pusharg(positionals[0].name, current.matches[2]);
+                        pusharg(positionals[0].name, text);
                         if(positionals[0].type != "array") {
                             // this dance is so that either tsc or tslint doesn't complain becuase positionals[0].type "can't" be "trailing"
                             // even after mutating it.
