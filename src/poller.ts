@@ -124,7 +124,11 @@ export class Poller {
 
         let ad = await this.augmentDeviations(deviations);
 
-        let withEmbeds = ad.map( i => ({...i, embed: makeEmbedForDeviation(i, i.metadata)}));
+        let withEmbeds = ad.map( i => {
+            let workitem = colls.get(i.collection) || {username:""};
+            let place = `${workitem.username}/${i.collectionName}`
+            return {...i, embed: makeEmbedForDeviation(i, {metadata: i.metadata, postedWhere: place})};
+        });
 
         for(let i of withEmbeds) {
             let workitem = colls.get(i.collection);
@@ -140,7 +144,7 @@ export class Poller {
                     let chan = getChannel(this._discord, j.channel);
                     if(!chan) { continue; }
 
-                    await chan.send(`Added to \`${workitem.username}/${i.collectionName}\`: <${i.url}>`, i.embed);
+                    await chan.send(`<${i.url}>`, i.embed);
                 }
             }
             this._cache.add(i.collection, i.deviationid);

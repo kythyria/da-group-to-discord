@@ -3,25 +3,24 @@ import * as dat from './deviantart/datatypes';
 import { daHtmlToDfm } from './formatconverter';
 
 const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
+const DEVIANTART_ICON = "https://st.deviantart.net/emoticons/d/deviantart.png";
 
-export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, metadata? : dat.DeviationMetadata) : RichEmbed {
+export interface makeEmbedOpts {
+    metadata? : dat.DeviationMetadata,
+    postedWhere?: string
+};
+
+export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, options: makeEmbedOpts ) : RichEmbed {
     let embed = new RichEmbed();
+     
     if (devinfo.published_time) {
         let pubtime = new Date(Number.parseInt(devinfo.published_time) * 1000);
-        let timestr = pubtime.toLocaleString("en-GB-u-hc-h23", {
-           timeZone: "UTC",
-           year: "numeric",
-           month: "long",
-           day: "numeric",
-           hour: "2-digit",
-           minute: "2-digit",
-           hour12: false 
-        });
-        embed.setFooter(`Posted to deviantART on ${timestr}`, "https://st.deviantart.net/emoticons/d/deviantart.png");
+        embed.setTimestamp(pubtime);
     }
-    else {
-        embed.setFooter(`Posted to deviantART at an unknown time`, "https://st.deviantart.net/emoticons/d/deviantart.png");
-    }
+    
+    options.postedWhere = options.postedWhere || "deviantART";
+    embed.setFooter(`Posted to ${options.postedWhere}`, DEVIANTART_ICON);
+
     if(devinfo.author) {
         embed.setAuthor(devinfo.author.username, devinfo.author.usericon);
     }
@@ -45,12 +44,12 @@ export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, metadata? : d
         embed.setThumbnail(ordered[0].src);
     }
 
-    if(!metadata) {
+    if(!options.metadata) {
         embed.setDescription("`<unknown>`");
         return embed;
     }
 
-    let rawdesc = metadata.description;
+    let rawdesc = options.metadata.description;
     let desc = daHtmlToDfm(rawdesc);
     if(desc.length > DISCORD_MAX_EMBED_DESCRIPTION) {
         desc = desc.slice(0, DISCORD_MAX_EMBED_DESCRIPTION) + "...";

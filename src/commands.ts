@@ -3,7 +3,7 @@ import { Message, MessageOptions, RichEmbed, Attachment } from 'discord.js';
 import * as da from './deviantart/api';
 import * as dt from './deviantart/datatypes';
 import { inspect } from 'util';
-import { makeEmbedForDeviation } from './embedmaker'
+import { makeEmbedForDeviation, makeEmbedOpts } from './embedmaker'
 import { ConfigFile } from './configuration';
 import { Poller } from './poller';
 import { tryParseURL, isUuid } from './util';
@@ -196,20 +196,19 @@ export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.Comma
                     reply(provokingMessage, "API call failed:\n```JSON\n" + inspect(e.response.body, { compact: false }) + "\n```");
                     return Promise.resolve(false);
                 }
-
+                let message = `<${response.url}>`
+                let embedopts : makeEmbedOpts = {}
                 let metadataResponse : da.DeviationMetadataResponse;
                 try {
-                    metadataResponse = await api.getDeviationMetadata([devId], {ext_submission: true, ext_stats: true});
+                    let metadataResponse = await api.getDeviationMetadata([devId], {ext_submission: true, ext_stats: true})
+                    embedopts.metadata = metadataResponse.metadata[0];
                 }
                 catch(e) {
-                    let embed = makeEmbedForDeviation(response);
-                    let message = `<${response.url}>\nCould not fetch deviation metadata:\n\`\`\`JSON\n${inspect(e.response.body, { compact: false })}\n\`\`\``;
-                    reply(provokingMessage, message, embed);
-                    return Promise.resolve(true);
+                    message = `<${response.url}>\nCould not fetch deviation metadata:\n\`\`\`JSON\n${inspect(e.response.body, { compact: false })}\n\`\`\``;
                 }
-                let embed = makeEmbedForDeviation(response, metadataResponse.metadata[0]);
+                let embed = makeEmbedForDeviation(response, embedopts);
 
-                reply(provokingMessage, `<${response.url}>`, embed);
+                reply(provokingMessage, message, embed);
                 return Promise.resolve(true);
             }
         },
