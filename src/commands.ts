@@ -239,7 +239,12 @@ export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.Comma
                 }
 
                 if((url.protocol == "https:" || url.protocol == "http:") && (url.host.endsWith(".deviantart.com") || url.host == "fav.me")) {
-                    let response : request.FullResponse = await request({url});
+                    let response : request.FullResponse = await request({
+                        url, 
+                        headers: {"User-Agent": da.FAKE_BROWSER_UA},
+                        resolveWithFullResponse: true,
+                        simple: false
+                    });
                     if(response.statusCode != 200) {
                         reply(provokingMessage, "Couldn't fetch that.");
                         return Promise.resolve(false);

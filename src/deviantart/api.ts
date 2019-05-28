@@ -5,6 +5,9 @@ import { OAuth2Client } from './oauthclient';
 import { Partial } from '../util';
 import { URL } from 'url';
 
+export const DEVIANTART_CLIENT_UA = 'lightningphoenixs-deviantart-client/0.5';
+export const FAKE_BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36 Vivaldi/1.91.867.42";
+
 export interface OffsetPaginatedResult<T> {
     has_more: boolean;
     next_offset: number;
@@ -73,7 +76,7 @@ export class Api {
         apiRoot: "https://www.deviantart.com/api/v1/oauth2/",
         oauthEndpoint: "https://www.deviantart.com/oauth2/token",
         defaultMatureVisible: true,
-        userAgent: 'lightningphoenixs-deviantart-client/0.5'
+        userAgent: DEVIANTART_CLIENT_UA
     }
     readonly DEVIANTART_API_MINOR_VERSION = 20160316;
     readonly GETMETADATA_CHUNK_SIZE = 50;
