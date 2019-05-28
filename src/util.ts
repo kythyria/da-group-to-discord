@@ -1,3 +1,5 @@
+import { URL } from "url";
+
 export type Partial<T> = {
     [P in keyof T]?: T[P];
 }
@@ -31,4 +33,18 @@ export function* slices<T>(items : Iterable<T>, count: number) : IterableIterato
     if(slice.length > 0) {
         yield slice;
     }
+}
+
+export function tryParseURL(str: string) : URL | undefined {
+    try {
+        let u = new URL(str);
+        return u;
+    }
+    catch(e) {
+        return undefined;
+    }
+}
+
+export function isUuid(str: string) : boolean {
+    return /^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i.test(str);
 }

@@ -1,9 +1,5 @@
-import * as https from 'https';
-import * as querystring from 'querystring';
 import request from 'request-promise-native';
-import * as errors from 'request-promise-native/errors';
 import { URL } from 'url';
-import { promises } from 'fs';
 
 interface BearerToken {
     access_token: string;
@@ -13,11 +9,6 @@ interface BearerToken {
     scope: string;
 }
 
-interface RequestFailed {
-    request?: request.OptionsWithUrl;
-    response?: request.FullResponse;
-    error: Error
-}
 
 export class OAuth2Client {
     private _clientId : string;

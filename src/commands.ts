@@ -1,16 +1,17 @@
 import * as cd from './commanddispatcher';
 import { Message, MessageOptions, RichEmbed, Attachment } from 'discord.js';
 import * as da from './deviantart/api';
-import { inspect } from 'util';
-import { stringify } from 'querystring';
 import * as dt from './deviantart/datatypes';
-import { daHtmlToDfm } from './formatconverter';
+import { inspect } from 'util';
 import { makeEmbedForDeviation } from './embedmaker'
 import { ConfigFile } from './configuration';
 import { Poller } from './poller';
+import { tryParseURL, isUuid } from './util';
+import request from 'request-promise-native';
+import * as p5 from 'parse5';
+import * as HtmlTools from './htmltools';
 
 const DISCORD_MESSAGE_CAP = 2000;
-const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
 
 function reply(provokingMessage: Message, content?: any, options?: MessageOptions|RichEmbed|Attachment) : void {
     if(provokingMessage.channel.type == "dm") {
@@ -70,7 +71,7 @@ export let simpleCommands : cd.CommandDefinition[] = [
 ];
 
 export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.CommandDefinition[] {
-    return [
+    let commands : cd.CommandDefinition[] = [
         {
             name: "galleryfolders",
             description: "Get the gallery folders for a particular deviantart user",
@@ -181,8 +182,9 @@ export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.Comma
             ],
             exec: async (cmd: cd.ParsedCommand, provokingMessage: Message) : Promise<boolean> => {
                 let devId = cmd.arguments[0][1];
-                if(!devId.match(/^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i)) {
-                    reply(provokingMessage, "That's not a real UUID");
+
+                if(!isUuid(devId)) {
+                    reply(provokingMessage, "That's not a UUID.");
                     return Promise.resolve(false);
                 }
 
@@ -196,10 +198,8 @@ export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.Comma
                 }
 
                 let metadataResponse : da.DeviationMetadataResponse;
-                let metadata! : dt.DeviationMetadata;
                 try {
                     metadataResponse = await api.getDeviationMetadata([devId], {ext_submission: true, ext_stats: true});
-                    metadata = metadataResponse.metadata[0];
                 }
                 catch(e) {
                     let embed = makeEmbedForDeviation(response);
@@ -223,6 +223,74 @@ export function deviantartCommands(api : da.Api, config : ConfigFile) : cd.Comma
                 await poller.poll();
                 return Promise.resolve(true);
             }
+        },
+        {
+            name: "embed",
+            description: "Generate the embed for a deviation by URL",
+            permission: cd.CommandPermission.Anyone,
+            params: [
+                {name: "object", description: "URL of the thing to embed", type: "word"}
+            ],
+            exec: async (cmd: cd.ParsedCommand, provokingMessage: Message) : Promise<boolean> => {
+                let url = tryParseURL(cmd.arguments[0][1]);
+                let deviationid: string;
+                if(!url) {
+                    reply(provokingMessage, "That isn't a URL at all.");
+                    return Promise.resolve(false);
+                }
+
+                if((url.protocol == "https:" || url.protocol == "http:") && (url.host.endsWith(".deviantart.com") || url.host == "fav.me")) {
+                    let response : request.FullResponse = await request({url});
+                    if(response.statusCode != 200) {
+                        reply(provokingMessage, "Couldn't fetch that.");
+                        return Promise.resolve(false);
+                    }
+                    let tree = p5.parse(response.body);
+                    let links = HtmlTools.getMeta(tree, "da:appurl");
+                    if(links.length == 0) {
+                        reply(provokingMessage, "Couldn't find the deviation ID in the page.");
+                        return Promise.resolve(false);
+                    }
+                    let linkvalue = links[0].attrs.find(i => i.name == "content");
+                    if(!linkvalue) {
+                        reply(provokingMessage, "Couldn't find the deviation ID in the page.");
+                        return Promise.resolve(false);
+                    }
+                    url = tryParseURL(linkvalue.value);
+                    if(!url) {
+                        reply(provokingMessage, "Page contained a malformed appurl.");
+                        return Promise.resolve(false);
+                    }
+                }
+
+                if(url.protocol == "deviantart:") {
+                    if(url.hostname != "deviation") {
+                        reply(provokingMessage, "I currently only understand deviation URLs");
+                        return Promise.resolve(false);
+                    }
+
+                    deviationid = url.pathname.substring(1);
+                    if(!isUuid(deviationid)) {
+                        reply(provokingMessage, "This isn't a well-formed deviantart URL");
+                        return Promise.resolve(false);
+                    }
+                }
+                else {
+                    reply(provokingMessage, "This isn't a well-formed deviantart URL");
+                    return Promise.resolve(false);
+                }
+
+                let newcmd : cd.ParsedCommand = {
+                    arguments: [["deviation", deviationid]],
+                    commandName: "embeddeviation",
+                    originalText: `embeddeviation ${deviationid}`
+                };
+
+                let embeddeviation = commands.find(i => i.name == "embeddeviation");
+                if(!embeddeviation) { throw new Error("Somehow the embeddeviation command got lost"); }
+                return embeddeviation.exec(newcmd, provokingMessage);
+            }
         }
-    ]
+    ];
+    return commands;
 }
