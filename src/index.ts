@@ -38,9 +38,11 @@ discord.on("ready", async () => {
         console.log("Couldn't send DM to owner. Do you have a guild in common?");
         console.log(e);
     }
-    dopoll();
-    if(!timer) {
-        timer = discord.setInterval(dopoll, config.pollInterval);
+    if(!process.argv.includes("--noPoll")) {
+        dopoll();
+        if(!timer) {
+            timer = discord.setInterval(dopoll, config.pollInterval);
+        }
     }
 });
 

@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Launch Program",
             "program": "${workspaceFolder}\\lib\\index.js",
-            "args": ["${workspaceFolder}/config.json"],
+            "args": ["${workspaceFolder}/config.json", "--noPoll"],
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
             ],
