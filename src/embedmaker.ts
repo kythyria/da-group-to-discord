@@ -38,11 +38,11 @@ export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, metadata? : d
     else if (devinfo.thumbs && devinfo.thumbs.length >= 1) {
         let ordered = devinfo.thumbs.sort((a,b) => {
             let l = a.width, r = b.width;
-            if (l > r) { return 1; }
-            if (l < r) { return -1; }
+            if (l > r) { return -1; }
+            if (l < r) { return 1; }
             return 0;
         });
-        embed.setImage(ordered[0].src);
+        embed.setThumbnail(ordered[0].src);
     }
 
     if(!metadata) {
