@@ -1,4 +1,4 @@
-import { Channel, Message } from 'discord.js';
+import { Message, MessageOptions, RichEmbed, Attachment } from 'discord.js';
 import * as StringScanner from './stringscanner';
 import { tryParseURL } from './util';
 
@@ -54,24 +54,124 @@ export function isParsedCommand(p: ParsedCommand|ParseFailure|null) : p is Parse
     return !!p && 'commandName' in p;
 }
 
-/* command syntax:
-<commandline> := <highlight> (", "|",")? <commandname> (<wsp> <parameter>)* (<wsp> <trailing>)?
-<commandname> := <word>
-<parameter>   := <option> | <quoted-word> | <code-span> | <word> | "--"
-<option>      := "--" <word>
-<quoted-word> := /"((?:.|"")*)"/
-<code-span>   := /(`+)(.+)\1/
-*/
+const DISCORD_MESSAGE_CAP = 2000;
+
+export function reply(provokingMessage: Message, content?: any, options?: MessageOptions|RichEmbed|Attachment) : void {
+    if(provokingMessage.channel.type == "dm") {
+        provokingMessage.channel.send(content, options);
+    }
+    else {
+        let msg = `<@${provokingMessage.author.id}>`;
+        if(content) { msg += ": " + content;}
+        provokingMessage.channel.send(msg, options);
+    }
+}
+
+export async function longReply(provokingMessage: Message, content: IterableIterator<string>) : Promise<void> {
+    let resultText = "";
+    if(provokingMessage.channel.type != "dm") {
+        resultText += `<@${provokingMessage.author.id}>: `;
+    }
+    for(let i of content) {
+        if ((resultText.length + i.length) > DISCORD_MESSAGE_CAP) {
+            await provokingMessage.channel.send(resultText);
+            resultText = "";
+        }
+        resultText += i;
+    }
+    if(resultText != "") {
+        await provokingMessage.channel.send(resultText);
+    }
+}
 
 export class CommandDispatcher {
     commands: CommandDefinition[];
     ownerId: string;
+    helpCommand : CommandDefinition;
 
     constructor(cmds: CommandDefinition[]) {
         this.commands = cmds;
         this.ownerId = "";
+
+        let self = this;
+        this.helpCommand = {
+            name: "help",
+            description: "Lists commands and their descriptions.",
+            permission: CommandPermission.Anyone,
+            params: [
+                {name: "command", type: "word", description: "Specific commmand to get help on"}
+            ],
+            exec: async (cmd: ParsedCommand, provokingMessage: Message) : Promise<boolean> => {
+                if(cmd.arguments.length > 0) {
+                   return Promise.resolve(self.printCommandHelp(provokingMessage, cmd.arguments[0][1]))
+                }
+                else {
+                    self.printCommandList(provokingMessage);
+                }
+
+                return Promise.resolve(true);
+            }
+        }
     }
 
+    printCommandList(provokingMessage: Message) {
+        let list = this.commands.map(i => `**${i.name}:** ${i.description}\n`);
+        longReply(provokingMessage, function*(){
+            yield "**List of commands**\n\n";
+            yield* list;
+        }());
+    }
+
+    printCommandHelp(provokingMessage: Message, commandname: string) : boolean {
+        let cmddef = this.getCommand(commandname);
+        if(!cmddef) {
+            reply(provokingMessage, "Could not find help for nonexistent command");
+            return false;
+        }
+
+        let summary = `\`${cmddef.name}`;
+        for (let i of cmddef.params) {
+            if(i.type == "word" || i.type == "array") {
+                summary += ` <${i.name}>`;
+            }
+            else if(i.type == "named") {
+                summary += ` --${i.name} <value>`;
+            }
+            else if(i.type == "switch") {
+                summary += ` --${i.name}`;
+            }
+            else if(i.type == "trailing") {
+                summary += ` <${i.name}...>`;
+            }
+        }
+        summary += `\``;
+
+        longReply(provokingMessage, function*(){
+            yield summary;
+            yield `\n ${cmddef.description}`
+            for (let i of cmddef.params) {
+                if(i.type == "word" || i.type == "array") {
+                    yield `\n\`<${i.name}>\`\n        ${i.description}`;
+                }
+                else if(i.type == "named" || i.type == "switch") {
+                    yield `\n\`--${i.name}\`\n        ${i.description}`;
+                }
+                else if(i.type == "trailing") {
+                    summary += ` <${i.name}...>\`\n        ${i.description}`;
+                }
+            }
+        }());
+        return true;
+    } 
+
+    /* command syntax:
+     * <commandline> := <highlight> (", "|",")? <commandname> (<wsp> <parameter>)* (<wsp> <trailing>)?
+     * <commandname> := <word>
+     * <parameter>   := <option> | <quoted-word> | <code-span> | <word> | "--"
+     * <option>      := "--" <word>
+     * <quoted-word> := /"((?:.|"")*)"/
+     * <code-span>   := /(`+)(.+)\1/
+     */
     parseMessage(msg: string, uid? : string) : ParsedCommand|ParseFailure|null {
         let reHighlight = /<@!?(\d+)>[,:]?\s+/y;
         let reWord = /()([^\s]+)/y; // to match the quoted sort
@@ -112,7 +212,7 @@ export class CommandDispatcher {
             result.commandName = current.matches[0];
         }
 
-        let cmddef = this.commands.find(i=> i.name == result.commandName.toLowerCase());
+        let cmddef = this.getCommand(result.commandName);
         if(!cmddef) {
             return { error: "noSuchCommand", partialResult: result };
         }
@@ -244,7 +344,7 @@ export class CommandDispatcher {
         }
         else if (isParsedCommand(cmd)) {
             let commandname = cmd.commandName;
-            let cmddef = this.commands.find(i => i.name == commandname);
+            let cmddef = this.getCommand(commandname);
             if(cmddef) {
                 if(!this.checkPermissions(msg, cmd, cmddef)) {
                     let isChannel = msg.channel.type != "dm";
@@ -301,5 +401,15 @@ export class CommandDispatcher {
         }
 
         msg.channel.send(response);
+    }
+
+    getCommand(name: string) : CommandDefinition|undefined {
+        if((name) == "help") {
+            return this.helpCommand;
+        }
+
+        else {
+            return this.commands.find(i => i.name == name);
+        }
     }
 }
