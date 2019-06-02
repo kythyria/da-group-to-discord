@@ -48,3 +48,9 @@ export function tryParseURL(str: string) : URL | undefined {
 export function isUuid(str: string) : boolean {
     return /^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i.test(str);
 }
+
+export function* concatIterables<T>(...sources : Iterable<T>[]) : IterableIterator<T> {
+    for(let i of sources) {
+        yield* i;
+    }
+}

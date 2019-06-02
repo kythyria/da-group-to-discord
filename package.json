@@ -8,6 +8,7 @@
     "discord.js": "^11.4.2",
     "erlpack": "^0.1.2",
     "parse5": "^5.1.0",
+    "reflect-metadata": "^0.1.13",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "uws": "^99.0.0"
