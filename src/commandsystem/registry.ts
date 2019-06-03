@@ -115,7 +115,7 @@ export class CommandRegistry {
                     paramValue = {result: "success", value: true};
                 }
                 else {
-                    paramValue = paramDesc.controller(argv[i++]);
+                    paramValue = paramDesc.controller(argv[++i]);
                 }
             }
             else {
