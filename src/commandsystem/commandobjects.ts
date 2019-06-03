@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { tryParseURL } from "../util";
 
 export const COMMAND_KEY = Symbol("CommandMetadata");
 
@@ -133,8 +134,16 @@ export interface Command {
     run(env: CommandEnvironment) : Promise<void>
 }
 
-export function nameParam(param: string) {
-    if(param && param.match(/^[-a-zA-Z0-9]+$/)) {
+export function URLParam(param: string) : TypeControllerResult {
+    let url = tryParseURL(param);
+    if(!url) {
+        return {result: "error", message: "That isn't a URL at all."}
+    }
+    return {result: "success", value: url };
+}
+
+export function nameParam(param: string) : TypeControllerResult {
+    if(param.match(/^[-a-zA-Z0-9]+$/)) {
         return {result: "success", value: param};
     }
     else {
@@ -142,7 +151,7 @@ export function nameParam(param: string) {
     }
 }
 
-export function UUIDParam(param: string) {
+export function UUIDParam(param: string) : TypeControllerResult {
     if(param.match(/^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i)) {
         return {result: "success", value: param};
     }
@@ -151,7 +160,7 @@ export function UUIDParam(param: string) {
     }
 }
 
-export function intParam(param: string) {
+export function intParam(param: string) : TypeControllerResult {
     let num = Number.parseInt(param)
     if(!Number.isNaN(num)) {
         return {result: "success", value: num};

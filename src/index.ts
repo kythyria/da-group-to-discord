@@ -24,10 +24,12 @@ let commandFrontend : DiscordCommandFrontend | undefined = undefined;
 interface AmbientParameters {
     deviantart: Deviantart.Api;
     poller: Poller;
+    commandRegistry : CommandRegistry
 }
 let ambientParameters : AmbientParameters = {
     deviantart: da,
-    poller: poller
+    poller: poller,
+    commandRegistry,
 }
 
 function dopoll() {
