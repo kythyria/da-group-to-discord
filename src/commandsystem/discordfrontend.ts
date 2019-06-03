@@ -1,6 +1,7 @@
 import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, GroupDMChannel } from "discord.js";
 import { ReplySink, DefaultBufferedSink, CommandEnvironment } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
+import { tryParseURL } from "../util";
 
 const DISCORD_MESSAGE_CAP = 2000;
 
@@ -91,14 +92,36 @@ export class DiscordCommandFrontend {
         //  either
         //    a string quoted by one of ' " or any number of backticks
         //    or a string with no spaces in
-        let reMonster = /\s*(?:(["']|`+)(.+?)|([^\s]+))\1/y
-
+        //    a string with no spaces quoted by <> but only if it's a URL
+        // we don't check for URLs in this regex because that would be stupid huge.
+        /*
+        > console.table(["foo","<foo>",'"foo"',"'foo'","<foo bar"].reduce((a,i) => {a[i]=Array.from(reMonster.exec(i));return a;}, {}))
+        ┌──────────┬─────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
+        │ (index)  │    0    │     1     │     2     │     3     │     4     │     5     │
+        ├──────────┼─────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
+        │   foo    │  'foo'  │ undefined │ undefined │ undefined │ undefined │   'foo'   │
+        │  <foo>   │ '<foo>' │ undefined │ undefined │  '<foo>'  │   'foo'   │ undefined │
+        │  "foo"   │ '"foo"' │    '"'    │   'foo'   │ undefined │ undefined │ undefined │
+        │  'foo'   │ "'foo'" │    "'"    │   'foo'   │ undefined │ undefined │ undefined │
+        │ <foo bar │ '<foo'  │ undefined │ undefined │ undefined │ undefined │  '<foo'   │
+        └──────────┴─────────┴───────────┴───────────┴───────────┴───────────┴───────────┘
+        */
+        let reMonster = /\s*(?:(["']|`+)(.+?)|(<([^\s>]+)>)|([^\s]+))\1/y
+        
         let result: string[] = [];
-
+        
         while(true) {
             let m = reMonster.exec(cmdline);
-            if(m) {
-                result.push(m[2]||m[3]);
+            if(m && m[4]) {
+                if(tryParseURL(m[4])) {
+                    result.push(m[4]);
+                }
+                else {
+                    result.push(m[3]);
+                }
+            }
+            else if(m) {
+                result.push(m[5]||m[2]);
             }
             else {
                 break;

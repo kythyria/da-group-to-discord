@@ -151,6 +151,9 @@ export class CommandRegistry {
         }
 
         for(let i of ambients) {
+            if(!Object.keys(ambientArgs).includes(i.name)) {
+                throw new Error(`Ambient argument ${i.name} not present`);
+            }
             commandInstance[i.name] = ambientArgs[i.name];
         }
 
