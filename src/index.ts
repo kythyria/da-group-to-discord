@@ -29,15 +29,6 @@ let ambientParameters : AmbientParameters = {
     commandRegistry,
 }
 
-function dopoll() {
-    console.log("Polling...")
-    console.time("poll");
-    poller.poll().then(() => {
-        console.timeEnd("poll");
-        console.log("Poll complete");
-    });
-};
-
 let timer : NodeJS.Timer | undefined = undefined;
 
 discord.on("ready", async () => {
@@ -56,10 +47,8 @@ discord.on("ready", async () => {
         console.log(e);
     }
     if(!process.argv.includes("--noPoll")) {
-        dopoll();
-        if(!timer) {
-            timer = discord.setInterval(dopoll, config.pollInterval);
-        }
+        poller.poll();
+        poller.start();
     }
 });
 

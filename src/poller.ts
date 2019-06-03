@@ -69,6 +69,7 @@ export class Poller {
     _cache : IdCache;
     _collectionNames : Map<string, string>;
     _collectionNameTimer: number;
+    _timer? : NodeJS.Timer;
 
     constructor(config : conf.ConfigFile, discord : Discord.Client, deviantart : da.Api) {
         this._conf = config;
@@ -103,8 +104,34 @@ export class Poller {
         return list;
     }
 
+    start() : void {
+        this.stop();
+        if(!this._timer) {
+            this._timer = this._discord.setInterval(this.poll.bind(this), this._conf.pollInterval);
+        }
+    }
+
+    stop() : void {
+        if(this._timer) {
+            this._discord.clearInterval(this._timer);
+        }
+    }
+
     async poll() : Promise<void> {
+        console.log("Polling...")
+        console.time("poll");
         this.startTyping();
+        try {
+            await this.pollWork();
+        }
+        finally {
+            console.timeEnd("poll");
+            console.log("Poll complete");
+        }
+        this.stopTyping();
+    }
+
+    async pollWork() : Promise<void> {
 
         if(this._collectionNameTimer <= 0) {
             await this.populateCollectionNames();
@@ -150,7 +177,6 @@ export class Poller {
             this._cache.add(i.collection, i.deviationid);
             await this._cache.save();
         }
-        this.stopTyping();
     }
 
     async getNewDeviations(username: string, collection: string) : Promise<CollectedDeviation[]> {
