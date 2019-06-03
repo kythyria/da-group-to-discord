@@ -111,7 +111,7 @@ export class Api {
     }
 
     async getFolder(options: GetFolderContentsOptions) : Promise<GetFolderContentsResult> {
-        let newopts : any = Object.assign({}, options);
+        let newopts = Object.assign({mature_content: this._opts.defaultMatureVisible}, options);
         delete newopts.folderid;
         let response =  await this._client.requestWithClientCredentials({
             url: new URL("./gallery/" + options.folderid, this._opts.apiRoot),
