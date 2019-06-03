@@ -1,8 +1,6 @@
 import * as Deviantart from './deviantart/api';
 import { readConfig } from './configuration';
 import * as Discord from 'discord.js';
-//import * as cd from './commanddispatcher';
-//import { simpleCommands, deviantartCommands } from './dispatchercommands';
 import { Poller } from './poller';
 import { CommandRegistry } from './commandsystem/registry';
 import { DiscordCommandFrontend } from './commandsystem/discordfrontend';
@@ -13,7 +11,6 @@ let config = readConfig();
 let da = new Deviantart.Api(config.deviantart.clientId, config.deviantart.clientSecret);
 let discord = new Discord.Client();
 let poller = new Poller(config, discord, da);
-//let dispatcher = new cd.CommandDispatcher(Array.prototype.concat(simpleCommands, deviantartCommands(da, config) ));
 
 let commandRegistry = new CommandRegistry();
 commandRegistry.registerDirectory(requireDir('./commands'));

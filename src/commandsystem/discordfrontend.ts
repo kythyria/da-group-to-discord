@@ -2,6 +2,7 @@ import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, Gr
 import { ReplySink, DefaultBufferedSink, CommandEnvironment } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
+import { cpus } from "os";
 
 const DISCORD_MESSAGE_CAP = 2000;
 
@@ -74,10 +75,18 @@ export class DiscordCommandFrontend {
         if(!mentionMatch && msg.channel.type != "dm") {
             return;
         }
-
-        let [command, ...argv] = this.decodeArgv(msgtext);
-
+        
         let env = new DiscordEnvironment(msg.channel, msg.author);
+
+        let command: string, argv: string[];
+        if(msgtext.trim() == "") {
+            command = "ping";
+            argv = [];
+        }
+        else {
+            [command, ...argv] = this.decodeArgv(msgtext);
+        }
+
 
         let result = await this._registry.invoke(command, argv, this._ambient, env);
         if(result.result == "success") { return; }
