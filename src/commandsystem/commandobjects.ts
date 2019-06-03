@@ -101,7 +101,7 @@ export function Named(typeController: any, description?: string) : PropertyDecor
         om.parameters.push({
             name: propertyName,
             description: description,
-            optional: false,
+            optional: true,
             repeating: false,
             controller: typeController,
             position: "named"

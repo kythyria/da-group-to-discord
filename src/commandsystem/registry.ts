@@ -126,7 +126,7 @@ export class CommandRegistry {
                     throw new Error("How did we get here? We checked there were positional arguments left, and yet here there are, none.");
                 }
                 paramDesc = maybeParamDesc;
-                nameds.delete(paramDesc.name);
+                nameds.delete(paramDesc.name.toLowerCase());
                 paramValue = paramDesc.controller(argv[i]);
             }
 
