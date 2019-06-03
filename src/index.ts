@@ -1,19 +1,35 @@
 import * as Deviantart from './deviantart/api';
 import { readConfig } from './configuration';
 import * as Discord from 'discord.js';
-import * as cd from './commanddispatcher';
-import { simpleCommands, deviantartCommands } from './commands';
+//import * as cd from './commanddispatcher';
+//import { simpleCommands, deviantartCommands } from './dispatchercommands';
 import { Poller } from './poller';
+import { CommandRegistry } from './commandsystem/registry';
+import { DiscordCommandFrontend } from './commandsystem/discordfrontend';
+import requireDir from 'require-dir';
 
 let config = readConfig();
 
 let da = new Deviantart.Api(config.deviantart.clientId, config.deviantart.clientSecret);
 let discord = new Discord.Client();
-let dispatcher = new cd.CommandDispatcher(Array.prototype.concat(simpleCommands, deviantartCommands(da, config) ));
+let poller = new Poller(config, discord, da);
+//let dispatcher = new cd.CommandDispatcher(Array.prototype.concat(simpleCommands, deviantartCommands(da, config) ));
+
+let commandRegistry = new CommandRegistry();
+commandRegistry.registerDirectory(requireDir('./commands'));
 
 let dmchannel : Discord.DMChannel | undefined = undefined;
+let commandFrontend : DiscordCommandFrontend | undefined = undefined;
 
-let poller = new Poller(config, discord, da);
+interface AmbientParameters {
+    deviantart: Deviantart.Api;
+    poller: Poller;
+}
+let ambientParameters : AmbientParameters = {
+    deviantart: da,
+    poller: poller
+}
+
 function dopoll() {
     console.log("Polling...")
     console.time("poll");
@@ -28,7 +44,9 @@ let timer : NodeJS.Timer | undefined = undefined;
 discord.on("ready", async () => {
     console.log(`Logged in as ${discord.user.tag}!`);
     let appinfo = await discord.fetchApplication();
-    dispatcher.ownerId = appinfo.owner.id;
+
+    commandFrontend = new DiscordCommandFrontend(appinfo.owner.id, commandRegistry, ambientParameters);
+
     console.log(`Join URL: https://discordapp.com/api/oauth2/authorize?client_id=${appinfo.id}&scope=bot`);
     try {
         dmchannel = await appinfo.owner.createDM();
@@ -52,11 +70,19 @@ discord.on("disconnect", (evt) => {
 
 discord.on("message", (msg) => {
     if (msg.author.id == discord.user.id) { return; }
-    dispatcher.onMessage(msg);
+    if(commandFrontend) {
+        commandFrontend.onMessage(msg);
+    }
 });
 
 discord.on("error", e => {
     console.log("Websocket error: %o",e);
 });
 
-discord.login(config.discord.botToken);
+discord.login(config.discord.botToken)
+.then(str => {
+    console.log("Client.login() done");
+}).catch(err => {
+    console.log("Loginfail: %o", err);
+    process.exit(1);
+});

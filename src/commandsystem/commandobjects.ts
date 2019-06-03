@@ -16,7 +16,7 @@ export interface ParameterMetadata {
 }
 
 export interface CommandMetadata {
-    name?: string,
+    name: string,
     description?: string,
     permission: CommandPermission
     parameters: ParameterMetadata[],
@@ -30,6 +30,7 @@ function ensureCommandMetadata(target: any) : CommandMetadata {
     let om : CommandMetadata = Reflect.getMetadata(COMMAND_KEY, target);
     if(!om) {
         om = {
+            name: target.constructor.name,
             description: "",
             parameters: [],
             permission: "nobody",
@@ -39,16 +40,20 @@ function ensureCommandMetadata(target: any) : CommandMetadata {
     return om;
 }
 
+export function getCommandMetadata(target: any) : CommandMetadata {
+    return Reflect.getMetadata(COMMAND_KEY, target.prototype);
+}
+
 export function Description(desc: string) {
     return function(target: any) {
-        let om : CommandMetadata = Reflect.getMetadata(COMMAND_KEY, target);
+        let om : CommandMetadata = ensureCommandMetadata(target.prototype);
         om.description = desc;
     }
 }
 
 export function Permission(perm: CommandPermission) {
     return function(target: any) {
-        let om : CommandMetadata = Reflect.getMetadata(COMMAND_KEY, target);
+        let om : CommandMetadata = ensureCommandMetadata(target.prototype);
         om.permission = perm;
     }
 }

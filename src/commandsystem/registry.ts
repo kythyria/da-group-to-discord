@@ -1,4 +1,4 @@
-import { Command, COMMAND_KEY, CommandMetadata, ParameterMetadata, TypeControllerResult, CommandEnvironment, CommandFactory } from "./commandobjects";
+import { Command, COMMAND_KEY, CommandMetadata, ParameterMetadata, TypeControllerResult, CommandEnvironment, CommandFactory, getCommandMetadata } from "./commandobjects";
 import { concatIterables } from "../util";
 
 export type InvokeSuccess = { result: "success" };
@@ -27,7 +27,8 @@ export class CommandRegistry {
     }
 
     register(cmd: CommandFactory) : void {
-        this._commands.set(cmd.name, cmd);
+        let metadata = getCommandMetadata(cmd);
+        this._commands.set(metadata.name.toLowerCase(), cmd);
     }
 
     unregister(cmd: CommandFactory|string) : void {
@@ -42,8 +43,16 @@ export class CommandRegistry {
         }
     }
 
+    registerDirectory(modules: {[path: string] : {[name: string] : CommandFactory}}) {
+        for(let mod of Object.values(modules)) {
+            for(let cmd of Object.values(mod)) {
+                this.register(cmd);
+            }
+        }
+    }
+
     async invoke(name: string, argv: string[], ambientArgs: any, environment: CommandEnvironment) : Promise<InvokeResult> {
-        let command = this._commands.get(name);
+        let command = this._commands.get(name.toLowerCase());
         if(!command) {
             return { result: "fail", error: "nocommand", message: "No command by this name."};
         }
@@ -67,7 +76,7 @@ export class CommandRegistry {
                 ambients.push(i);
             }
             else {
-                nameds.set(i.name, i);
+                nameds.set(i.name.toLowerCase(), i);
                 positionals.push(i);
             }
         }
@@ -85,7 +94,7 @@ export class CommandRegistry {
 
             if(allowNamed && argv[i].startsWith("--")) {
                 let paramName = argv[i].substring(2);
-                let maybeParamDesc = nameds.get(paramName);
+                let maybeParamDesc = nameds.get(paramName.toLowerCase());
 
                 if(!maybeParamDesc) {
                     return {result: "fail", error: "noparam", message: "Nonexistent parameter", errorSubject: paramName};
