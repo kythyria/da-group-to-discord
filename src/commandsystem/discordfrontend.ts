@@ -1,5 +1,5 @@
 import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, GroupDMChannel } from "discord.js";
-import { ReplySink, DefaultBufferedSink, CommandEnvironment } from "./commandobjects";
+import { ReplySink, DefaultBufferedSink, CommandEnvironment, getCommandMetadata } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
 import { cpus } from "os";
@@ -50,16 +50,18 @@ class DiscordEnvironment implements CommandEnvironment, DiscordCommandEnvironmen
 
 export class DiscordCommandFrontend {
     private _myuid : string;
+    private _owneruid : string;
     private _registry : CommandRegistry;
     private _ambient : any;
 
-    constructor(uid: string, registry: CommandRegistry, ambient: any) {
+    constructor(uid: string, owneruid: string, registry: CommandRegistry, ambient: any) {
         this._myuid = uid;
+        this._owneruid = owneruid;
         this._registry = registry;
         this._ambient = ambient;
     }
 
-    async onMessage(msg: Message) {
+    async onMessage(msg: Message) : Promise<void> {
         let msgtext = msg.content;
 
         let selfMentioned = false;
@@ -76,8 +78,6 @@ export class DiscordCommandFrontend {
             return;
         }
         
-        let env = new DiscordEnvironment(msg.channel, msg.author);
-
         let command: string, argv: string[];
         if(msgtext.trim() == "") {
             command = "ping";
@@ -87,6 +87,12 @@ export class DiscordCommandFrontend {
             [command, ...argv] = this.decodeArgv(msgtext);
         }
 
+        let env = new DiscordEnvironment(msg.channel, msg.author);
+
+        let cmdmeta = getCommandMetadata(this._registry.command(command));
+        if(cmdmeta.permission == "owner" && msg.author.id != this._owneruid) {
+            return env.reply("You do not have permission to use this command.");
+        }
 
         let result = await this._registry.invoke(command, argv, this._ambient, env);
         if(result.result == "success") { return; }
