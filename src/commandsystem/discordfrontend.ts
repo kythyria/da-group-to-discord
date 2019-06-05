@@ -90,7 +90,7 @@ export class DiscordCommandFrontend {
         let env = new DiscordEnvironment(msg.channel, msg.author);
 
         let cmdmeta = getCommandMetadata(this._registry.command(command));
-        if(cmdmeta.permission == "owner" && msg.author.id != this._owneruid) {
+        if(command && cmdmeta.permission == "owner" && msg.author.id != this._owneruid) {
             return env.reply("You do not have permission to use this command.");
         }
 
