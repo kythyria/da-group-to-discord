@@ -33,3 +33,14 @@ export class PollStop implements Command {
         this.poller.stop();
     }
 }
+
+@Description("Check for new deviations but don't notify them, just remember they've been seen.")
+@Permission("owner")
+export class MarkAllRead implements Command {
+    @Ambient()
+    poller!: Poller
+    
+    async run(env: CommandEnvironment) : Promise<void> {
+        return this.poller.markRead();
+    }
+}

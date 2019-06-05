@@ -35,6 +35,15 @@ export function* slices<T>(items : Iterable<T>, count: number) : IterableIterato
     }
 }
 
+export function* takeFirst<T>(count: number, items: Iterable<T>) : IterableIterator<T> {
+    let iter = items[Symbol.iterator]();
+    for(let i = 0; i < count; i++) {
+        let curr = iter.next();
+        if(curr.done) { break; }
+        yield curr.value;
+    }
+}
+
 export function tryParseURL(str: string) : URL | undefined {
     try {
         let u = new URL(str);

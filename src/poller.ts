@@ -2,7 +2,7 @@ import * as Discord from "discord.js";
 import * as da from './deviantart/api'
 import * as dat from './deviantart/datatypes';
 import * as conf from './configuration';
-import { unique, slices } from './util';
+import { unique, slices, takeFirst } from './util';
 import * as path from "path";
 import { IdCache } from "./idcache";
 import { makeEmbedForDeviation } from "./embedmaker";
@@ -132,15 +132,8 @@ export class Poller {
     }
 
     async pollWork() : Promise<void> {
-
-        if(this._collectionNameTimer <= 0) {
-            await this.populateCollectionNames();
-            this._collectionNameTimer = COLLECTION_NAME_UPDATE_INTERVAL;
-        }
-        else {
-            this._collectionNameTimer--;
-        }
-
+        await this.populateCollectionNames();
+        
         let colls = this.buildWorkList();
         let deviations : CollectedDeviation[] = []
         for(let i of colls) {
@@ -176,6 +169,18 @@ export class Poller {
             }
             this._cache.add(i.collection, i.deviationid);
             await this._cache.save();
+        }
+    }
+
+    async markRead() {
+        let colls = this.buildWorkList();
+        for(let i of colls) {
+            let startOfCollection = takeFirst(this._conf.maxIdCache, await this.getNewDeviations(i[1].username, i[1].collection));
+            let deviations = Array.from(startOfCollection).reverse();
+            for(let j of deviations) {
+                this._cache.add(j.collection, j.deviationid);
+                await this._cache.save();
+            }
         }
     }
 
@@ -260,6 +265,11 @@ export class Poller {
     }
 
     async populateCollectionNames() : Promise<void> {
+        if(this._collectionNameTimer > 0) {
+            this._collectionNameTimer--;
+            return;
+        }
+
         let users = unique(this._conf.notifyMappings.map(i => i.username));
         for(let i of users) {
             let off = 0;
@@ -289,5 +299,6 @@ export class Poller {
                 }
             }
         }
+        this._collectionNameTimer = COLLECTION_NAME_UPDATE_INTERVAL;
     }
 }
