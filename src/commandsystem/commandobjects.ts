@@ -23,6 +23,8 @@ export interface CommandMetadata {
     parameters: ParameterMetadata[],
 }
 
+export type ParameterOptions = Partial<ParameterMetadata>;
+
 function allowAllController(param: any) : TypeControllerResult {
     return {result: "success", value: param};
 }
@@ -76,20 +78,22 @@ export function Ambient() : PropertyDecorator {
     }
 }
 
-export function Positional(position: number, typeController: any, description?: string) : PropertyDecorator {
+export function Positional(position: number, typeController: any, description: string, options?: ParameterOptions) : PropertyDecorator {
     return function(target: any, propertyName: string|symbol) {
         if(typeof(propertyName) == "symbol") {
             throw new Error("Parameters must have string names");
         }
         let om = ensureCommandMetadata(target);
-        om.parameters.push({
+        let params = {
             name: propertyName,
             description: description,
             optional: false,
             repeating: false,
             controller: typeController,
             position: position
-        });
+        };
+        Object.assign(params, options);
+        om.parameters.push(params);
     }
 }
 
@@ -140,6 +144,10 @@ export function URLParam(param: string) : TypeControllerResult {
         return {result: "error", message: "That isn't a URL at all."}
     }
     return {result: "success", value: url };
+}
+
+export function stringParam(param: string) : TypeControllerResult {
+    return {result: "success", value: param};
 }
 
 export function nameParam(param: string) : TypeControllerResult {
