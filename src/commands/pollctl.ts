@@ -9,6 +9,7 @@ export class PollNow implements Command {
 
     async run(env: CommandEnvironment) : Promise<void> {
         await this.poller.poll();
+        return env.reply("Done");
     }
 }
 
@@ -41,6 +42,7 @@ export class MarkAllRead implements Command {
     poller!: Poller
     
     async run(env: CommandEnvironment) : Promise<void> {
-        return this.poller.markRead();
+        await this.poller.markRead();
+        return env.reply("Done");
     }
 }

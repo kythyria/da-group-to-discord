@@ -107,12 +107,14 @@ export class Poller {
     start() : void {
         this.stop();
         if(!this._timer) {
+            console.log("Starting poll timer");
             this._timer = this._discord.setInterval(this.poll.bind(this), this._conf.pollInterval);
         }
     }
 
     stop() : void {
         if(this._timer) {
+            console.log("Stopping poll timer")
             this._discord.clearInterval(this._timer);
         }
     }
@@ -127,8 +129,8 @@ export class Poller {
         finally {
             console.timeEnd("poll");
             console.log("Poll complete");
+            this.stopTyping();
         }
-        this.stopTyping();
     }
 
     async pollWork() : Promise<void> {
@@ -173,6 +175,8 @@ export class Poller {
     }
 
     async markRead() {
+        console.log("Marking read");
+        console.time("markread");
         let colls = this.buildWorkList();
         for(let i of colls) {
             let startOfCollection = takeFirst(this._conf.maxIdCache, await this.getNewDeviations(i[1].username, i[1].collection));
@@ -182,6 +186,8 @@ export class Poller {
                 await this._cache.save();
             }
         }
+        console.timeEnd("markread");
+        console.log("Done marking read");
     }
 
     async getNewDeviations(username: string, collection: string) : Promise<CollectedDeviation[]> {
