@@ -35,7 +35,7 @@ discord.on("ready", async () => {
     console.log(`Logged in as ${discord.user.tag}!`);
     let appinfo = await discord.fetchApplication();
 
-    commandFrontend = new DiscordCommandFrontend(appinfo.owner.id, commandRegistry, ambientParameters);
+    commandFrontend = new DiscordCommandFrontend(discord.user.id, appinfo.owner.id, commandRegistry, ambientParameters);
 
     console.log(`Join URL: https://discordapp.com/api/oauth2/authorize?client_id=${appinfo.id}&scope=bot`);
     try {

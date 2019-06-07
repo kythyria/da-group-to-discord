@@ -2,7 +2,6 @@ import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, Gr
 import { ReplySink, DefaultBufferedSink, CommandEnvironment, getCommandMetadata } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
-import { cpus } from "os";
 
 const DISCORD_MESSAGE_CAP = 2000;
 
