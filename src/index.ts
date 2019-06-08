@@ -47,7 +47,6 @@ discord.on("ready", async () => {
         console.log(e);
     }
     if(!process.argv.includes("--noPoll")) {
-        poller.poll();
         poller.start();
     }
 });

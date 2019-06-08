@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 
 export interface ConfigFile {
-    // Place to store data, relative to cwd.
+    // Place to store data, relative to cwd. This must exist, it won't be auto-created.
     dataDirectory: string;
 
     // deviantart OAuth credentials
@@ -26,7 +26,7 @@ export interface ConfigFile {
 }
 
 export interface PollMapping {
-    // name of user that owns the collection to probe.
+    // name of user or group that owns the collection to probe.
     username: string,
 
     // UUID of the collection. Ask the bot `galleryfolders <username>` to
