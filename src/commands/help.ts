@@ -60,6 +60,7 @@ export class Help implements Command {
             out.write(` ${lb}<${i.name}>`);
         }
         out.write("]".repeat(bracketdepth));
+        out.write("`");
         if(cmdinfo.description) {
             out.write("\n" + cmdinfo.description);
         }
