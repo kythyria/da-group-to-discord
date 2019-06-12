@@ -54,7 +54,7 @@ export class IdCache {
 
     save() : void {
         let data = mapToArrays(this._cache);
-        let json = JSON.stringify(data);
+        let json = JSON.stringify(data,undefined,2);
 
         // TODO: Should this be async? If so, is ordering guaranteed?
         fs.writeFileSync(this._file, json);
