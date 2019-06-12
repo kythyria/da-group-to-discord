@@ -34,14 +34,23 @@ export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, options: make
     if(devinfo.content) {
         embed.setImage(devinfo.content.src);
     }
-    else if (devinfo.thumbs && devinfo.thumbs.length >= 1) {
-        let ordered = devinfo.thumbs.sort((a,b) => {
+    else {
+        let maybe_thumbs: dat.ImageInfo[] = [];
+        if(devinfo.thumbs) {
+            maybe_thumbs = maybe_thumbs.concat(devinfo.thumbs);
+        }
+        if(devinfo.social_preview) {
+            maybe_thumbs.push(devinfo.social_preview);
+        }
+        let ordered = maybe_thumbs.sort((a,b) => {
             let l = a.width, r = b.width;
             if (l > r) { return -1; }
             if (l < r) { return 1; }
             return 0;
         });
-        embed.setThumbnail(ordered[0].src);
+        if(ordered.length >= 1) {
+            embed.setThumbnail(ordered[0].src);
+        }
     }
 
     if(!options.metadata) {

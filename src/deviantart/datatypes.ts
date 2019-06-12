@@ -63,6 +63,7 @@ export interface DeviationInfo {
     published_time?: string
     allows_comments?: boolean;
     preview?: ImageInfo;
+    social_preview?: ImageInfo; // Not documented, but the API sometimes returns it.
     content?: SizedImageInfo;
     thumbs?: ImageInfo[];
     videos?: VideoInfo[];
