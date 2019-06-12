@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Query deviantart groups and post new deviations to discord channels",
   "main": "index.js",
+  "repository": "git:kythyria/da-group-to-discord",
   "dependencies": {
     "@types/parse5": "^5.0.0",
     "discord.js": "^11.4.2",
@@ -25,8 +26,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "node .\\lib\\index.js .\\config.json"
+    "start": "node ./lib/index.js ./config.json"
   },
   "author": "",
-  "license": "ISC"
+  "license": "MIT"
 }
