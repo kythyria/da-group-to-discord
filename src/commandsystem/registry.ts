@@ -2,7 +2,7 @@ import { Command, COMMAND_KEY, CommandMetadata, ParameterMetadata, TypeControlle
 import { concatIterables } from "../util";
 
 export type InvokeSuccess = { result: "success" };
-export type InvokeFailure = { result: "fail", error: "nocommand" | "noparam" | "badparam", message: string, errorSubject?: string, errorObject?: any }
+export type InvokeFailure = { result: "fail", error: "nocommand" | "noparam" | "badparam" | "nopermission", message: string, errorSubject?: string, errorObject?: any }
 export type InvokeResult = InvokeFailure | InvokeSuccess;
 export function invokeSucceeded(res: InvokeResult) : res is InvokeSuccess {
     return res.result == "success";
@@ -63,6 +63,10 @@ export class CommandRegistry {
         }
 
         let commandInstance : any = new command();
+
+        if(!environment.checkPermission(descriptor.permission)) {
+            return { result: "fail", error: "nopermission", message: "You don't have permission to do this."};
+        }
 
         let positionals : ParameterMetadata[] = [];
         let nameds : Map<string, ParameterMetadata> = new Map();

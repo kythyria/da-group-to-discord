@@ -2,7 +2,7 @@ import { Description, Permission, Ambient, CommandEnvironment, Command } from ".
 import { Poller } from "../poller";
 
 @Description("Immediately check for un-notified deviations")
-@Permission("owner")
+@Permission("listedAdmin")
 export class PollNow implements Command {
     @Ambient()
     poller!: Poller
@@ -14,7 +14,7 @@ export class PollNow implements Command {
 }
 
 @Description("Tell the polling system to start checking automatically (this doesn't run one immediately)")
-@Permission("owner")
+@Permission("listedAdmin")
 export class PollStart implements Command {
     @Ambient()
     poller!: Poller
@@ -25,7 +25,7 @@ export class PollStart implements Command {
 }
 
 @Description("Tell the polling system to stop checking automatically")
-@Permission("owner")
+@Permission("listedAdmin")
 export class PollStop implements Command {
     @Ambient()
     poller!: Poller
@@ -36,7 +36,7 @@ export class PollStop implements Command {
 }
 
 @Description("Check for new deviations but don't notify them, just remember they've been seen.")
-@Permission("owner")
+@Permission("listedAdmin")
 export class MarkAllRead implements Command {
     @Ambient()
     poller!: Poller

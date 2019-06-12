@@ -4,6 +4,9 @@ export interface ConfigFile {
     // Place to store data, relative to cwd. This must exist, it won't be auto-created.
     dataDirectory: string;
 
+    // IDs of users who can use commands with @Permission("admin")
+    admins: string[];
+
     // deviantart OAuth credentials
     deviantart: { clientId: string, clientSecret: string };
 

@@ -5,7 +5,7 @@ export const COMMAND_KEY = Symbol("CommandMetadata");
 
 export type TypeController = (param: string) => TypeControllerResult;
 export type TypeControllerResult = { result: "error", message: string} | { result: "success", value: any};
-export type CommandPermission = "nobody" | "anyone" | "owner"
+export type CommandPermission = "nobody" | "anyone" | "owner" | "listedAdmin"
 
 export interface ParameterMetadata {
     name: string
@@ -128,6 +128,8 @@ export interface CommandEnvironment {
     output(msg: string) : Promise<void>;
     output(msg: Iterable<string>) : Promise<void>;
     outputLong() : ReplySink;
+
+    checkPermission(perm: CommandPermission) : Promise<boolean>;
 }
 
 export interface CommandFactory {

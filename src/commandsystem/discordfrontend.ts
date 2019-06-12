@@ -1,5 +1,5 @@
 import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, GroupDMChannel } from "discord.js";
-import { ReplySink, DefaultBufferedSink, CommandEnvironment, getCommandMetadata } from "./commandobjects";
+import { ReplySink, DefaultBufferedSink, CommandEnvironment, getCommandMetadata, CommandPermission } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
 
@@ -13,10 +13,14 @@ export interface DiscordCommandEnvironment extends CommandEnvironment {
 class DiscordEnvironment implements CommandEnvironment, DiscordCommandEnvironment {
     private _channel: TextChannel | DMChannel | GroupDMChannel;
     private _instigator: User;
+    private _admins: string[];
+    private _owner: string;
 
-    constructor(channel: TextChannel | DMChannel | GroupDMChannel, instigator: User) {
+    constructor(channel: TextChannel | DMChannel | GroupDMChannel, instigator: User, owner: string, admins: string[]) {
         this._channel = channel;
         this._instigator = instigator;
+        this._admins = admins;
+        this._owner = owner;
     }
 
     outputLong() : ReplySink {
@@ -45,6 +49,21 @@ class DiscordEnvironment implements CommandEnvironment, DiscordCommandEnvironmen
     async output(msg: string, embed?: RichEmbed) : Promise<void> {
         await this._channel.send(msg, embed);
     }
+
+    async checkPermission(perm: CommandPermission) : Promise<boolean> {
+        if (perm=="anyone") {
+            return true;
+        }
+        else if (perm=="listedAdmin") {
+            return this._admins.includes(this._instigator.id) || this._owner == this._instigator.id;
+        }
+        else if (perm=="owner") {
+            return this._owner == this._instigator.id;
+        }
+        else {
+            return false;
+        }
+    }
 }
 
 export class DiscordCommandFrontend {
@@ -52,12 +71,14 @@ export class DiscordCommandFrontend {
     private _owneruid : string;
     private _registry : CommandRegistry;
     private _ambient : any;
+    private _adminlist : string[];
 
-    constructor(uid: string, owneruid: string, registry: CommandRegistry, ambient: any) {
+    constructor(uid: string, owneruid: string, registry: CommandRegistry, ambient: any, admins: string[]) {
         this._myuid = uid;
         this._owneruid = owneruid;
         this._registry = registry;
         this._ambient = ambient;
+        this._adminlist = admins;
     }
 
     async onMessage(msg: Message) : Promise<void> {
@@ -86,15 +107,7 @@ export class DiscordCommandFrontend {
             [command, ...argv] = this.decodeArgv(msgtext);
         }
 
-        let env = new DiscordEnvironment(msg.channel, msg.author);
-
-        let commandfactory = this._registry.command(command)
-        if(commandfactory) {
-            let cmdmeta = getCommandMetadata(commandfactory);
-            if(cmdmeta&& cmdmeta.permission == "owner" && msg.author.id != this._owneruid) {
-                return env.reply("You do not have permission to use this command.");
-            }
-        }
+        let env = new DiscordEnvironment(msg.channel, msg.author, this._owneruid, this._adminlist);
 
         let result = await this._registry.invoke(command, argv, this._ambient, env);
         if(result.result == "success") { return; }

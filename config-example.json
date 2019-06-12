@@ -1,5 +1,6 @@
 {
     "dataDirectory": "./var",
+    "admins": ["SNOWFLAKE"],
     "deviantart": {
         "clientId": "ID",
         "clientSecret": "SECRET"
