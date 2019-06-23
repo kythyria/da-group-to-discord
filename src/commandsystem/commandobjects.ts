@@ -130,6 +130,8 @@ export interface CommandEnvironment {
     outputLong() : ReplySink;
 
     checkPermission(perm: CommandPermission) : Promise<boolean>;
+
+    log(msg: string) : void;
 }
 
 export interface CommandFactory {

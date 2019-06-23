@@ -63,3 +63,8 @@ export function* concatIterables<T>(...sources : Iterable<T>[]) : IterableIterat
         yield* i;
     }
 }
+
+export function addIndent(str: string, amount: number) : string {
+    let lines = str.split("\n");
+    return lines.map(i => " ".repeat(amount) + i).join("\n");
+}

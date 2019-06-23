@@ -6,6 +6,8 @@ import { unique, slices, takeFirst } from './util';
 import * as path from "path";
 import { IdCache } from "./idcache";
 import { makeEmbedForDeviation } from "./embedmaker";
+import { DiscordLogThing } from "./discordlogthing";
+import { format } from "util";
 
 interface PollWorkItem {
     username: string,
@@ -57,7 +59,7 @@ function getChannel(discord : Discord.Client, key: string) : Discord.TextChannel
  *     if it's not already in the list, add it
  * foreach channel to be posted to
  *   post each item
- * Save the ID cache // here so that a crash doesn't eat anything. At-least-once rather than at-most-once
+ *   Save the ID cache // here so that a crash doesn't eat anything. At-least-once rather than at-most-once
  */
 
  const COLLECTION_NAME_UPDATE_INTERVAL = 4
@@ -70,8 +72,9 @@ export class Poller {
     _collectionNames : Map<string, string>;
     _collectionNameTimer: number;
     _timer? : NodeJS.Timer;
+    _logThing : DiscordLogThing;
 
-    constructor(config : conf.ConfigFile, discord : Discord.Client, deviantart : da.Api) {
+    constructor(config : conf.ConfigFile, discord : Discord.Client, deviantart : da.Api, logThing : DiscordLogThing) {
         this._conf = config;
         this._discord = discord;
         this._da = deviantart;
@@ -81,6 +84,7 @@ export class Poller {
 
         this._collectionNames = new Map();
         this._collectionNameTimer = 0;
+        this._logThing = logThing
     }
 
     buildWorkList() : Map<string, PollWorkItem> {
@@ -107,30 +111,27 @@ export class Poller {
     start() : void {
         this.stop();
         if(!this._timer) {
-            console.log("Starting poll timer");
+            this._logThing.log("Starting poll timer");
             this._timer = this._discord.setInterval(this.poll.bind(this), this._conf.pollInterval);
         }
     }
 
     stop() : void {
         if(this._timer) {
-            console.log("Stopping poll timer")
+            this._logThing.log("Stopping poll timer")
             this._discord.clearInterval(this._timer);
         }
     }
 
     async poll() : Promise<void> {
-        console.log("Polling...")
-        console.time("poll");
+        console.log("Polling...");
+        let startTime = Date.now();
         this.startTyping();
-        try {
-            await this.pollWork();
-        }
-        finally {
-            console.timeEnd("poll");
-            console.log("Poll complete");
-            this.stopTyping();
-        }
+
+        await this._logThing.catch("poll", this.pollWork());
+
+        this._logThing.log(`Poll ended (took ${Date.now() - startTime}ms)`);
+        this.stopTyping();
     }
 
     async pollWork() : Promise<void> {
@@ -175,8 +176,9 @@ export class Poller {
     }
 
     async markRead() {
-        console.log("Marking read");
-        console.time("markread");
+        this._logThing.log("Marking read");
+        let startTime = Date.now();
+
         let colls = this.buildWorkList();
         for(let i of colls) {
             let startOfCollection = takeFirst(this._conf.maxIdCache, await this.getNewDeviations(i[1].username, i[1].collection));
@@ -186,8 +188,8 @@ export class Poller {
                 await this._cache.save();
             }
         }
-        console.timeEnd("markread");
-        console.log("Done marking read");
+
+        this._logThing.log(`Done marking read (took ${Date.now() - startTime}ms)`);
     }
 
     async getNewDeviations(username: string, collection: string) : Promise<CollectedDeviation[]> {
@@ -300,7 +302,7 @@ export class Poller {
                     }
                 }
                 catch(e) {
-                    console.log("Failed to get collection names for %s with offset %d", i, off);
+                    this._logThing.log(format("Failed to get collection names for %s with offset %d", i, off));
                     break;
                 }
             }

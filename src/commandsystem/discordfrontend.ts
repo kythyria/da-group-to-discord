@@ -1,8 +1,9 @@
-import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, GroupDMChannel } from "discord.js";
-import { ReplySink, DefaultBufferedSink, CommandEnvironment, getCommandMetadata, CommandPermission } from "./commandobjects";
+import { Message, TextChannel, DMChannel, User, RichEmbed, GroupDMChannel } from "discord.js";
+import { ReplySink, DefaultBufferedSink, CommandEnvironment, CommandPermission } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
 import { DISCORD_MESSAGE_CAP } from "../constants";
+import { DiscordLogThing } from "../discordlogthing";
 
 export interface DiscordCommandEnvironment extends CommandEnvironment {
     reply(msg: string, embed?: RichEmbed) : Promise<void>;
@@ -14,12 +15,14 @@ class DiscordEnvironment implements CommandEnvironment, DiscordCommandEnvironmen
     private _instigator: User;
     private _admins: string[];
     private _owner: string;
+    private _logThing : DiscordLogThing;
 
-    constructor(channel: TextChannel | DMChannel | GroupDMChannel, instigator: User, owner: string, admins: string[]) {
+    constructor(channel: TextChannel | DMChannel | GroupDMChannel, instigator: User, owner: string, admins: string[], logThing : DiscordLogThing) {
         this._channel = channel;
         this._instigator = instigator;
         this._admins = admins;
         this._owner = owner;
+        this._logThing = logThing;
     }
 
     outputLong() : ReplySink {
@@ -63,6 +66,10 @@ class DiscordEnvironment implements CommandEnvironment, DiscordCommandEnvironmen
             return false;
         }
     }
+
+    log(msg: string) {
+        this._logThing.submitLogItem({short: msg});
+    }
 }
 
 export class DiscordCommandFrontend {
@@ -71,19 +78,20 @@ export class DiscordCommandFrontend {
     private _registry : CommandRegistry;
     private _ambient : any;
     private _adminlist : string[];
+    private _logThing : DiscordLogThing;
 
-    constructor(uid: string, owneruid: string, registry: CommandRegistry, ambient: any, admins: string[]) {
+    constructor(uid: string, owneruid: string, registry: CommandRegistry, ambient: any, admins: string[], logThing: DiscordLogThing) {
         this._myuid = uid;
         this._owneruid = owneruid;
         this._registry = registry;
         this._ambient = ambient;
         this._adminlist = admins;
+        this._logThing = logThing;
     }
 
     async onMessage(msg: Message) : Promise<void> {
         let msgtext = msg.content;
 
-        let selfMentioned = false;
         let mentionMatch = /^<@(\d+)>[:,]? /i.exec(msgtext);
         
         if(mentionMatch && mentionMatch[1] == this._myuid) {
@@ -106,13 +114,33 @@ export class DiscordCommandFrontend {
             [command, ...argv] = this.decodeArgv(msgtext);
         }
 
-        let env = new DiscordEnvironment(msg.channel, msg.author, this._owneruid, this._adminlist);
+        let env = new DiscordEnvironment(msg.channel, msg.author, this._owneruid, this._adminlist, this._logThing);
 
-        let result = await this._registry.invoke(command, argv, this._ambient, env);
-        if(result.result == "success") { return; }
-        else {
-            this.printInvokeError(env, result);
-        }
+        this._logThing.catch(`ProcessCommand-${command}`, async () =>{
+            try {
+                let result = await this._registry.invoke(command, argv, this._ambient, env);
+                if(result.result == "success") { return; }
+                else {
+                    this.printInvokeError(env, result);
+                }
+            }
+            catch(err) {
+                let channelname = msg.channel.id;
+                if(msg.channel.type == "dm") {
+                    channelname = "DM";
+                }
+                if(msg.channel.type == "text") {
+                    let tc = msg.channel as TextChannel;
+                    channelname = `${tc.guild.name} - ${tc.name}`;
+                }
+                throw Object.assign(err, {
+                    commandline: msg.content,
+                    invoker: `@${msg.author.username}#${msg.author.discriminator} (${msg.author.id})`,
+                    channel: channelname,               
+                    messageId: msg.id
+                })
+            }
+        });
     }
 
     decodeArgv(cmdline: string): string[] {

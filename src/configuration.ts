@@ -26,6 +26,9 @@ export interface ConfigFile {
 
     // Number of deviations to post in a single poll cycle.
     maxNewDeviations: number;
+
+    //Channel to post errors and some messages to
+    logChannel: string;
 }
 
 export interface PollMapping {

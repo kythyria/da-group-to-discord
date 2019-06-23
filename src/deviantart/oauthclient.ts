@@ -41,6 +41,7 @@ export class OAuth2Client {
             let response : request.FullResponse = await request(newopts);
             finalResponse = response;
             if(response.statusCode == 429 || (response.statusCode >= 500 && response.statusCode <= 599)) {
+                console.log("Request for %s failed with status code %d", opts.url, response.statusCode);
                 this.currentSleep += this.sleepIncrement * i;
                 continue;
             }
