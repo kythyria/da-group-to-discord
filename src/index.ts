@@ -10,7 +10,12 @@ import { DiscordLogThing } from './discordlogthing';
 let config = readConfig();
 
 let da = new Deviantart.Api(config.deviantart.clientId, config.deviantart.clientSecret);
-let discord = new Discord.Client();
+let discord = new Discord.Client({
+    // Try to curb the client's enthusiasm for keeping track of old messages.
+    messageCacheMaxSize: 2,
+    messageCacheLifetime: 20,
+    messageSweepInterval: 20
+});
 let logthing = new DiscordLogThing(discord, config.logChannel);
 let poller = new Poller(config, discord, da, logthing);
 
