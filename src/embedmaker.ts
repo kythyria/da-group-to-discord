@@ -1,9 +1,7 @@
 import { RichEmbed } from "discord.js";
 import * as dat from './deviantart/datatypes';
 import { daHtmlToDfm } from './formatconverter';
-
-const DISCORD_MAX_EMBED_DESCRIPTION = 2040;
-const DEVIANTART_ICON = "https://st.deviantart.net/emoticons/d/deviantart.png";
+import { DEVIANTART_ICON, DISCORD_MAX_EMBED_DESCRIPTION } from "./constants";
 
 export interface makeEmbedOpts {
     metadata? : dat.DeviationMetadata,

@@ -2,8 +2,7 @@ import { Message, TextChannel, DMChannel, User, RichEmbed, MessageEmbedImage, Gr
 import { ReplySink, DefaultBufferedSink, CommandEnvironment, getCommandMetadata, CommandPermission } from "./commandobjects";
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
-
-const DISCORD_MESSAGE_CAP = 2000;
+import { DISCORD_MESSAGE_CAP } from "../constants";
 
 export interface DiscordCommandEnvironment extends CommandEnvironment {
     reply(msg: string, embed?: RichEmbed) : Promise<void>;
