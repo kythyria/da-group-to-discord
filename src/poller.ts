@@ -120,6 +120,7 @@ export class Poller {
         if(this._timer) {
             this._logThing.log("Stopping poll timer")
             this._discord.clearInterval(this._timer);
+            this._timer = undefined;
         }
     }
 
