@@ -3,7 +3,7 @@ import { ReplySink, DefaultBufferedSink, CommandEnvironment, CommandPermission }
 import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
 import { DISCORD_MESSAGE_CAP } from "../constants";
-import { DiscordLogThing } from "../discordlogthing";
+import { DiscordLogThing, LogMessage } from "../discordlogthing";
 
 export interface DiscordCommandEnvironment extends CommandEnvironment {
     reply(msg: string, embed?: RichEmbed) : Promise<void>;
@@ -67,8 +67,15 @@ class DiscordEnvironment implements CommandEnvironment, DiscordCommandEnvironmen
         }
     }
 
-    log(msg: string) {
-        this._logThing.submitLogItem({short: msg});
+    log(msg: string) : void;
+    log(item: LogMessage) : void;
+    log(item: any) : void {
+        if(typeof(item) == "string") {
+            this._logThing.submitLogItem({short: item});
+        }
+        else {
+            this._logThing.submitLogItem(item);
+        }
     }
 }
 

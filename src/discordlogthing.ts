@@ -3,8 +3,9 @@ import { addIndent } from './util';
 import { inspect } from 'util';
 import { DISCORD_MESSAGE_CAP } from './constants';
 
-export interface LogMessageShort {short: string; }
-export interface LogMessageLong {short: string, long: string, filename?: string }
+export type Statistic = { value: number, coalescekey: boolean }
+export interface LogMessageShort {short: string; statistics?: {[key: string]: Statistic} }
+export interface LogMessageLong {short: string, statistics?: {[key: string]: Statistic}, long: string, filename?: string }
 export type LogMessage = LogMessageShort | LogMessageLong;
 
 export function isLongMessage(l: LogMessage) : l is LogMessageLong {
@@ -12,6 +13,10 @@ export function isLongMessage(l: LogMessage) : l is LogMessageLong {
 }
 
 const REPORT_MS = 500;
+
+function messageCombiner() {
+     
+}
 
 export class DiscordLogThing {
     discord: Client;
