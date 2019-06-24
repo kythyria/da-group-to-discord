@@ -23,11 +23,13 @@ export class DiscordLogThing {
     logTo : string;
     messageQueue: LogMessage[];
     timer? : NodeJS.Timeout;
+    timerCb : () => void;
     
     constructor(discord: Client, logTo : string) {
         this.discord = discord;
         this.logTo = logTo;
         this.messageQueue = [];
+        this.timerCb = this.postQueue.bind(this);
     }
 
     catch<T>(taskname: string, promise: PromiseLike<T>) : Promise<T>;
@@ -86,7 +88,7 @@ export class DiscordLogThing {
 
     setTimer() {
         if(!this.timer && this.messageQueue.length > 0) {
-            this.timer = setTimeout(() => {this.postQueue(); this.timer = undefined;}, REPORT_MS);
+            this.timer = setTimeout(this.timerCb, REPORT_MS);
         }
     }
 
