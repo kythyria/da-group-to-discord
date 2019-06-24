@@ -18,18 +18,93 @@ function messageCombiner() {
      
 }
 
-export class DiscordLogThing {
+class DiscordLogThingCore {
     discord: Client;
     logTo : string;
     messageQueue: LogMessage[];
+    oldestPendingTs?: Date;
     timer? : NodeJS.Timeout;
     timerCb : () => void;
-    
+
     constructor(discord: Client, logTo : string) {
         this.discord = discord;
         this.logTo = logTo;
         this.messageQueue = [];
         this.timerCb = this.postQueue.bind(this);
+    }
+
+    submitLogItem(item: LogMessage) {
+        this.messageQueue.push(item);
+        if(isLongMessage(item)) {
+            console.log(item.long);
+        }
+        else {
+            console.log(item.short);
+        }
+        this.setTimer();
+    }
+
+    setTimer() {
+        if(!this.timer && this.messageQueue.length > 0) {
+            this.timer = this.discord.setTimeout(this.timerCb, REPORT_MS);
+        }
+    }
+
+    async postQueue() {
+        let logChannelRaw = this.discord.channels.get(this.logTo);
+        if(!logChannelRaw) {
+            throw new Error("Log channel doesn't exist");
+        }
+
+        let logChannel : TextBasedChannelFields;
+        if(logChannelRaw.type == "text") {
+            logChannel = <TextChannel>logChannelRaw;
+        }
+        else if (logChannelRaw.type == "dm") {
+            logChannel = <DMChannel>logChannelRaw;
+        }
+        else {
+            throw new Error("Log channel isn't postable to");
+        }
+
+        let buf : LogMessage[] = []
+        let curr = buf[0];
+        for(let i of this.messageQueue) {
+            if(isLongMessage(i) || isLongMessage(curr) || buf.length == 0 || (curr.short.length + i.short.length + 1) >= DISCORD_MESSAGE_CAP ) {
+                let n = { ...i };
+                buf.push(n);
+                curr = n;
+                continue;
+            }
+            else {
+                curr.short += i.short;
+            }
+        }
+        this.messageQueue = [];
+        this.oldestPendingTs = undefined;
+        
+        for(let i of buf) {
+            let attach : Attachment|undefined;
+            if(isLongMessage(i)) {
+                attach = new Attachment( Buffer.from(i.long), i.filename);
+            }
+            // We know from up there that this *has* a send method. But discord.js 
+            // doesn't have a "text-like channel" interface in its
+            await logChannel.send(i.short, attach);
+        }
+
+        // we do this down here because we don't want to have messages in flight.
+        if(this.timer) { clearTimeout(this.timer); }
+        this.timer = undefined;
+
+        // There might be messages already waiting, since we awaited up there.
+        this.setTimer();
+    }
+}
+
+export class DiscordLogThing extends DiscordLogThingCore {
+    constructor(discord: Client, logTo : string) {
+        super(discord, logTo);
     }
 
     catch<T>(taskname: string, promise: PromiseLike<T>) : Promise<T>;
@@ -73,72 +148,5 @@ export class DiscordLogThing {
             long.push("\n");
         }
         this.submitLogItem({short: short.join(""), long: long.join(""), filename: `error-${new Date().toISOString()}.txt`});
-    }
-
-    submitLogItem(item: LogMessage) {
-        this.messageQueue.push(item);
-        if(isLongMessage(item)) {
-            console.log(item.long);
-        }
-        else {
-            console.log(item.short);
-        }
-        this.setTimer();
-    }
-
-    setTimer() {
-        if(!this.timer && this.messageQueue.length > 0) {
-            this.timer = setTimeout(this.timerCb, REPORT_MS);
-        }
-    }
-
-    async postQueue() {
-        let logChannelRaw = this.discord.channels.get(this.logTo);
-        if(!logChannelRaw) {
-            throw new Error("Log channel doesn't exist");
-        }
-
-        let logChannel : TextBasedChannelFields;
-        if(logChannelRaw.type == "text") {
-            logChannel = <TextChannel>logChannelRaw;
-        }
-        else if (logChannelRaw.type == "dm") {
-            logChannel = <DMChannel>logChannelRaw;
-        }
-        else {
-            throw new Error("Log channel isn't postable to");
-        }
-
-        let buf : LogMessage[] = []
-        let curr = buf[0];
-        for(let i of this.messageQueue) {
-            if(isLongMessage(i) || isLongMessage(curr) || buf.length == 0 || (curr.short.length + i.short.length + 1) >= DISCORD_MESSAGE_CAP ) {
-                let n = { ...i };
-                buf.push(n);
-                curr = n;
-                continue;
-            }
-            else {
-                curr.short += i.short;
-            }
-        }
-        this.messageQueue = [];
-        
-        for(let i of buf) {
-            let attach : Attachment|undefined;
-            if(isLongMessage(i)) {
-                attach = new Attachment( Buffer.from(i.long), i.filename);
-            }
-            // We know from up there that this *has* a send method. But discord.js 
-            // doesn't have a "text-like channel" interface in its
-            await logChannel.send(i.short, attach);
-        }
-
-        // we do this down here because we don't want to have messages in flight.
-        if(this.timer) { clearTimeout(this.timer); }
-        this.timer = undefined;
-
-        // There might be messages already waiting, since we awaited up there.
-        this.setTimer();
     }
 }
