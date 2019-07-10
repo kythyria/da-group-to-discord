@@ -68,3 +68,16 @@ export function addIndent(str: string, amount: number) : string {
     let lines = str.split("\n");
     return lines.map(i => " ".repeat(amount) + i).join("\n");
 }
+
+export function shallowArrayEquals<T>(left: T[], right: T[], comparer?: (l: T, r:T) => boolean) {
+    if(left.length != right.length) { return false; }
+
+    for(let i = 0; i < left.length; i++) {
+        if(comparer) {
+            if(comparer(left[i], right[i])) { continue; }
+            if(left[i] == right[i]) { continue; }
+            return false;
+        }
+    }
+    return true;
+}
