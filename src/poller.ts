@@ -6,7 +6,7 @@ import { unique, slices, takeFirst } from './util';
 import * as path from "path";
 import { IdCache } from "./idcache";
 import { makeEmbedForDeviation } from "./embedmaker";
-import { DiscordLogThing } from "./discordlogthing";
+import { DiscordLogThing, LogStatistics } from "./discordlogthing";
 import { format } from "util";
 
 interface PollWorkItem {
@@ -129,20 +129,34 @@ export class Poller {
         let startTime = Date.now();
         this.startTyping();
 
-        await this._logThing.catch("poll", this.pollWork());
+        let stats = await this._logThing.catch("poll", this.pollWork());
 
-        this._logThing.log(`Poll ended (took ${Date.now() - startTime}ms)`);
+        this._logThing.submitLogItem({
+            short: "Poll ended",
+            statistics: {
+                ...stats,
+                time: { value: Date.now() - startTime, coalesces: true }
+            }
+        })
         this.stopTyping();
     }
 
-    async pollWork() : Promise<void> {
+    async pollWork() : Promise<LogStatistics> {
         await this.populateCollectionNames();
+
+        let stats = {
+            posted: {value: 0, coalesces: true },
+            newItems: {value: 0, coalesces: true}
+        };
         
         let colls = this.buildWorkList();
         let deviations : CollectedDeviation[] = []
         for(let i of colls) {
             deviations = deviations.concat(await this.getNewDeviations(i[1].username, i[1].collection));
         }
+
+        stats.newItems.value = deviations.length;
+
         deviations = deviations.reverse();
         deviations = deviations.slice(0, this._conf.maxNewDeviations);
 
@@ -173,7 +187,10 @@ export class Poller {
             }
             this._cache.add(i.collection, i.deviationid);
             await this._cache.save();
+            stats.posted.value++;
         }
+
+        return stats;
     }
 
     async markRead() {

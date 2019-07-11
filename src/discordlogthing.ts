@@ -5,8 +5,9 @@ import { DISCORD_MESSAGE_CAP, LOG_SUMMARY_WINDOW } from './constants';
 import { invokeFailed } from './commandsystem/registry';
 
 export type Statistic = { value: number, coalesces: boolean }
-export interface LogMessageShort {short: string; statistics?: {[key: string]: Statistic} }
-export interface LogMessageLong {short: string, statistics?: {[key: string]: Statistic}, long: string, filename?: string }
+export interface LogStatistics  {[key: string]: Statistic}
+export interface LogMessageShort {short: string; statistics?: LogStatistics }
+export interface LogMessageLong {short: string, statistics?: LogStatistics, long: string, filename?: string }
 export type LogMessage = LogMessageShort | LogMessageLong;
 
 export function isLongMessage(l: LogMessage) : l is LogMessageLong {
