@@ -81,3 +81,7 @@ export function shallowArrayEquals<T>(left: T[], right: T[], comparer?: (l: T, r
     }
     return true;
 }
+
+export function assertNever(x: never) {
+    throw new Error(`Unexpected object: ${x}`);
+}

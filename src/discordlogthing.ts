@@ -1,5 +1,5 @@
 import { Client, TextChannel, DMChannel, Attachment, TextBasedChannelFields, Message } from 'discord.js';
-import { addIndent, shallowArrayEquals } from './util';
+import { addIndent, shallowArrayEquals, assertNever } from './util';
 import { inspect } from 'util';
 import { DISCORD_MESSAGE_CAP, LOG_SUMMARY_WINDOW } from './constants';
 import { invokeFailed } from './commandsystem/registry';
@@ -14,19 +14,6 @@ export function isLongMessage(l: LogMessage) : l is LogMessageLong {
 }
 
 const REPORT_MS = 500;
-
-function messageCombiner([existing, toAdd] : LogMessage[]) : LogMessage[] {
-    if(isLongMessage(existing) || isLongMessage(toAdd)) {
-        return [existing, toAdd];
-    }
-
-    if((existing.short.length + toAdd.short.length + 1) >= DISCORD_MESSAGE_CAP) {
-        return [existing, toAdd];
-    }
-
-    let newMsg = { short: existing.short + "\n" + toAdd.short };
-    return [newMsg];
-}
 
 interface TrackedStatistic {
     coalesces: boolean;
@@ -167,7 +154,7 @@ class Combiner {
 class DiscordLogThingCore {
     discord: Client;
     logTo : string;
-    messageQueue: LogMessage[];
+    messageQueue: CombineResult[];
     oldestPendingTs?: Date;
     timer? : NodeJS.Timeout;
     timerCb : () => void;
@@ -183,14 +170,44 @@ class DiscordLogThingCore {
     }
 
     submitLogItem(item: LogMessage) {
-        
-        this.messageQueue.push(item);
+        let consolemsg : string;
         if(isLongMessage(item)) {
-            console.log(item.long);
+            consolemsg = item.long;
+            this.messageQueue.push({
+                append: item.short,
+                attachment: new Attachment(Buffer.from(item.long), item.filename)
+            });
         }
         else {
-            console.log(this.combiner.formatSingle(item));
+            let comb = this.combiner.combine(item);
+
+            consolemsg = 'append' in comb ? comb.append : comb.edit;
+            
+            if(this.messageQueue.length == 0) {
+                this.messageQueue.push(comb);
+            }
+            else {
+                let last = this.messageQueue[this.messageQueue.length - 1];
+
+                if('edit' in last && 'edit' in comb) {
+                    last.edit = comb.edit;
+                }
+                else if ('append' in last && 'append' in comb) {
+                    if(last.append.length + comb.append.length + 1 <= DISCORD_MESSAGE_CAP) {
+                        last.append += '\n' + comb.append;
+                    }
+                    else {
+                        this.messageQueue.push(comb);
+                    }
+                }
+                else {
+                    this.messageQueue.push(comb);
+                }
+            }
         }
+        
+        console.log(consolemsg);
+
         this.setTimer();
     }
 
@@ -217,28 +234,27 @@ class DiscordLogThingCore {
             throw new Error("Log channel isn't postable to");
         }
 
-        let buf : LogMessage[] = []
-        let curr = buf[0];
-        for(let i of this.messageQueue) {
-            if(isLongMessage(i) || isLongMessage(curr) || buf.length == 0 || (curr.short.length + i.short.length + 1) >= DISCORD_MESSAGE_CAP ) {
-                let n = { ...i };
-                buf.push(n);
-                curr = n;
-                continue;
+        while(true) {
+            let curr = this.messageQueue.shift();
+            if(!curr) { break; }
+            try {
+                if('append' in curr) {
+                    this.previousMessage = undefined;
+                    await logChannel.send(curr.append, curr.attachment);
+                }
+                else if('edit' in curr) {
+                    if(this.previousMessage) {
+                        await this.previousMessage.edit(curr.edit)
+                    }
+                }
+                else {
+                    assertNever(curr);
+                }
             }
-            else {
-                curr.short += i.short;
+            catch(e) {
+                this.messageQueue.unshift(curr);
+                throw e;
             }
-        }
-        this.messageQueue = [];
-        this.oldestPendingTs = undefined;
-        
-        for(let i of buf) {
-            let attach : Attachment|undefined;
-            if(isLongMessage(i)) {
-                attach = new Attachment( Buffer.from(i.long), i.filename);
-            }
-            await logChannel.send(i.short, attach);
         }
 
         // we do this down here because we don't want to have messages in flight.
