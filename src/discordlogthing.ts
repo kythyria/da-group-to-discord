@@ -89,7 +89,7 @@ class Combiner {
         }
 
         let existingNames = Object.getOwnPropertyNames(this.statistics).sort();
-        let newNames = Object.getOwnPropertyNames(newMsg).sort();
+        let newNames = Object.getOwnPropertyNames(newMsg.statistics).sort();
 
         if(!shallowArrayEquals(existingNames, newNames)) {
             return false;
@@ -245,7 +245,23 @@ class DiscordLogThingCore {
                 }
                 else if('edit' in curr) {
                     if(this.previousMessage) {
-                        await this.previousMessage.edit(curr.edit)
+                        console.log("tpm: %s, clm: %s", this.previousMessage.id, logChannel.lastMessage.id);
+                        if(this.previousMessage.id != logChannel.lastMessage.id) {
+                            this.previousMessage = undefined;
+                        }
+                    }
+
+                    if(this.previousMessage) {
+                        this.previousMessage = await this.previousMessage.edit(curr.edit)
+                    }
+                    else {
+                        let res = await logChannel.send(curr.edit);
+                        if(Array.isArray(res)) {
+                            this.previousMessage = res[res.length - 1];
+                        }
+                        else {
+                            this.previousMessage = res;
+                        }
                     }
                 }
                 else {
