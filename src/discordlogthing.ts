@@ -193,7 +193,7 @@ class DiscordLogThingCore {
             }
         }
         
-        //console.log(consolemsg);
+        console.log(consolemsg);
 
         this.setTimer();
     }
@@ -226,13 +226,11 @@ class DiscordLogThingCore {
             if(!curr) { break; }
             try {
                 if('append' in curr) {
-                    console.log("a: %s", curr.append)
                     this.previousMessage = undefined;
                     await logChannel.send(curr.append, curr.attachment);
                 }
                 else if('edit' in curr) {
                     if(this.previousMessage) {
-                        console.log("tpm: %s, clm: %s", this.previousMessage.id, logChannel.lastMessage.id);
                         if(this.previousMessage.id != logChannel.lastMessage.id) {
                             this.previousMessage = undefined;
                         }
