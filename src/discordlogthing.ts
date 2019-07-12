@@ -93,7 +93,7 @@ class Combiner {
                 continue;
             }
             else {
-                return this.statistics[i].window[0] == newStats[i].value;
+                return this.statistics[i].last == newStats[i].value;
             }
         }
         return true;
