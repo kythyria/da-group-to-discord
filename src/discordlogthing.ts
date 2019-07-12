@@ -19,16 +19,12 @@ const REPORT_MS = 500;
 interface TrackedStatistic {
     coalesces: boolean;
 
+    last: number;
+
     // cumulative
     cma: number;
     cmax: number;
     cmin: number;
-
-    // values in the current window
-    window: number[];
-    wma: number;
-    wmax: number;
-    wmin: number;
 }
 
 type CombineResult = {edit: string} | {append: string, attachment? : Attachment};
@@ -70,13 +66,10 @@ class Combiner {
             for(let i of Object.entries(newMsg.statistics || {})) {
                 this.statistics[i[0]] = {
                     coalesces: i[1].coalesces,
+                    last: i[1].value,
                     cma: i[1].value,
                     cmax: i[1].value,
-                    cmin: i[1].value,
-                    window: [i[1].value],
-                    wma: i[1].value,
-                    wmax: i[1].value,
-                    wmin: i[1].value
+                    cmin: i[1].value
                 }
             }
         }
@@ -114,19 +107,10 @@ class Combiner {
             
             if (value < curr.cmin) { curr.cmin = value; }
             if (value > curr.cmax) { curr.cmax = value; }
-            
-            if(curr.window.length >= this.windowSize) {
-                curr.window.pop();
-            }
 
-            curr.window.unshift(value);
-            curr.wmax = curr.window.reduce((m,v) => v > m ? v : m);
-            curr.wmin = curr.window.reduce((m,v) => v < m ? v : m);
+            curr.last = value;
 
             curr.cma = (value + (this.repetitions-1) * curr.cma) / this.repetitions;
-            curr.wma = curr.window.reduce((m,v,i) => {
-                return m + v * (this.windowSize - i);
-            }, 0) / curr.window.reduce((m,v,i) => this.windowSize - i);
         }
     }
 
@@ -143,11 +127,13 @@ class Combiner {
     }
 
     formatSummary() : string {
-        let out = `${this.repetitions} identical messages.\n`;
-        out += "Statistics: last/wmin/wmax/wavg cmin/cmax/cavg\n";
+        let out = `${this.currentMessage}\n`;
+        out += `Suppressed ${this.repetitions} identical messages.\n`;
+        out += "```\n"
         out += Object.entries(this.statistics)
-            .map(([name, stat]) => `\`${name}\` ${stat.window[0]}/${stat.wmin}/${stat.wmax}/${stat.wma} ${stat.cmin}/${stat.cmax}/${stat.cma}`)
+            .map(([name, stat]) => `${name}:  ${stat.last}/${stat.cmin}/${stat.cmax}/${stat.cma}`)
             .join("\n");
+        out += "\n```"
         return out;        
     }
 }
@@ -207,7 +193,7 @@ class DiscordLogThingCore {
             }
         }
         
-        console.log(consolemsg);
+        //console.log(consolemsg);
 
         this.setTimer();
     }
@@ -240,6 +226,7 @@ class DiscordLogThingCore {
             if(!curr) { break; }
             try {
                 if('append' in curr) {
+                    console.log("a: %s", curr.append)
                     this.previousMessage = undefined;
                     await logChannel.send(curr.append, curr.attachment);
                 }
@@ -252,7 +239,7 @@ class DiscordLogThingCore {
                     }
 
                     if(this.previousMessage) {
-                        this.previousMessage = await this.previousMessage.edit(curr.edit)
+                        await this.previousMessage.edit(curr.edit)
                     }
                     else {
                         let res = await logChannel.send(curr.edit);
