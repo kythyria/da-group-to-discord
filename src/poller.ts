@@ -145,8 +145,8 @@ export class Poller {
         await this.populateCollectionNames();
 
         let stats = {
-            posted: {value: 0, coalesces: true },
-            newItems: {value: 0, coalesces: true}
+            posted: {value: 0, coalesces: false },
+            newItems: {value: 0, coalesces: false }
         };
         
         let colls = this.buildWorkList();
