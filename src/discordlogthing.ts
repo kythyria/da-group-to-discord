@@ -130,7 +130,7 @@ class Combiner {
         out += `Suppressed ${this.repetitions} identical messages.\n`;
         out += "```\n"
         out += Object.entries(this.statistics)
-            .filter(([name, stat]) => !stat.coalesces || stat.last != 0)
+            .filter(([name, stat]) => stat.coalesces || stat.last != 0)
             .map(([name, stat]) => `${name}:  ${stat.last}/${stat.cmin}/${stat.cmax}/${stat.cma}`)
             .join("\n");
         out += "\n```"
