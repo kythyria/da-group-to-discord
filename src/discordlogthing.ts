@@ -2,7 +2,6 @@ import { Client, TextChannel, DMChannel, Attachment, TextBasedChannelFields, Mes
 import { addIndent, shallowArrayEquals, assertNever } from './util';
 import { inspect } from 'util';
 import { DISCORD_MESSAGE_CAP, LOG_SUMMARY_WINDOW } from './constants';
-import { invokeFailed } from './commandsystem/registry';
 
 export type Statistic = { value: number, coalesces: boolean }
 export interface LogStatistics  {[key: string]: Statistic}
@@ -131,6 +130,7 @@ class Combiner {
         out += `Suppressed ${this.repetitions} identical messages.\n`;
         out += "```\n"
         out += Object.entries(this.statistics)
+            .filter(([name, stat]) => !stat.coalesces || stat.last != 0)
             .map(([name, stat]) => `${name}:  ${stat.last}/${stat.cmin}/${stat.cmax}/${stat.cma}`)
             .join("\n");
         out += "\n```"
