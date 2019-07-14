@@ -166,9 +166,8 @@ class DiscordLogThingCore {
             });
         }
         else {
+            consolemsg = this.combiner.formatSingle(item);
             let comb = this.combiner.combine(item);
-
-            consolemsg = 'append' in comb ? comb.append : comb.edit;
             
             if(this.messageQueue.length == 0) {
                 this.messageQueue.push(comb);
