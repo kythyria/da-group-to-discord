@@ -1,8 +1,8 @@
 import * as querystring from 'querystring';
-import * as dt from './datatypes'
+import * as dt from '../datatypes'
 import * as request from 'request-promise-native';
 import { OAuth2Client } from './oauthclient';
-import { Partial } from '../util';
+import { Partial } from '../../util';
 import { URL } from 'url';
 
 export const DEVIANTART_CLIENT_UA = 'lightningphoenixs-deviantart-client/0.5';

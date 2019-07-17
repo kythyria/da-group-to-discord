@@ -1,5 +1,5 @@
 import { RichEmbed } from "discord.js";
-import * as dat from './deviantart/datatypes';
+import * as dat from './deviantart/api/datatypes';
 import { daHtmlToDfm } from './formatconverter';
 import { DEVIANTART_ICON, DISCORD_MAX_EMBED_DESCRIPTION } from "./constants";
 
