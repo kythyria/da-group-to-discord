@@ -6,6 +6,7 @@
   "repository": "git:kythyria/da-group-to-discord",
   "dependencies": {
     "@types/parse5": "^5.0.0",
+    "cheerio": "^1.0.0-rc.3",
     "discord.js": "^11.4.2",
     "erlpack": "^0.1.2",
     "parse5": "^5.1.0",
@@ -16,6 +17,7 @@
     "uws": "^99.0.0"
   },
   "devDependencies": {
+    "@types/cheerio": "^0.22.12",
     "@types/node": "^10.12.23",
     "@types/request": "^2.48.1",
     "@types/request-promise-native": "^1.0.15",
