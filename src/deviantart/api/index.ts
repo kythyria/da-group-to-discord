@@ -1,5 +1,5 @@
 import * as querystring from 'querystring';
-import * as dt from '../datatypes'
+import * as dt from './datatypes'
 import * as request from 'request-promise-native';
 import { OAuth2Client } from './oauthclient';
 import { Partial } from '../../util';

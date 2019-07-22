@@ -1,6 +1,6 @@
 import { Description, Permission, Command, Ambient, Positional, UUIDParam, URLParam } from "../commandsystem/commandobjects";
 import * as da from '../deviantart/api';
-import * as dt from '../deviantart/datatypes'
+import * as dt from '../deviantart/api/datatypes'
 import { inspect } from "util";
 import { makeEmbedForDeviation, makeEmbedOpts } from '../embedmaker'
 import { DiscordCommandEnvironment } from "../commandsystem/discordfrontend";

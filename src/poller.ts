@@ -1,6 +1,6 @@
 import * as Discord from "discord.js";
 import * as da from './deviantart/api'
-import * as dat from './deviantart/datatypes';
+import * as dat from './deviantart/api/datatypes';
 import * as conf from './configuration';
 import { unique, slices, takeFirst } from './util';
 import * as path from "path";
