@@ -50,7 +50,7 @@ export class EmbedDeviation implements Command {
 
 function writeFailedPage(page : string) {
     let conf = readConfig();
-    let fn = path.join(conf.dataDirectory, `failpage-${new Date().toISOString()}.html`);
+    let fn = path.join(conf.dataDirectory, `failpage-${new Date().toISOString().replace(/[-\:]/,"")}.html`);
     writeFileSync(fn, Buffer.from(page));
 }
 
