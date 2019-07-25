@@ -45,7 +45,7 @@ function enforceTruncation(characters: number, lines: number, strings: IterableI
 }
 
 function escapeText(txt : string) {
-    const reMagicSymbols = /[*_`<:~]/g;
+    const reMagicSymbols = /[|*_`<:~]/g;
     return txt.replace(reMagicSymbols, "\\$&");
 }
 
@@ -54,7 +54,7 @@ export function daHtmlToDfm(input: string) {
 
     let inbody = $("body");
 
-    return(enforceTruncation(768, 8, convertElement(inbody)));
+    return(enforceTruncation(768, 10, convertElement(inbody)));
 }
 
 function *convertElement(el: Cheerio) : IterableIterator<string> {
