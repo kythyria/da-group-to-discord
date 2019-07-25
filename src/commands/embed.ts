@@ -10,10 +10,12 @@ import * as p5 from 'parse5';
 import * as HtmlTools from '../htmltools';
 import { tryParseURL, isUuid } from "../util";
 import { CommandRegistry } from "../commandsystem/registry";
+import * as cheerio from 'cheerio';
 
 import { readConfig } from "../configuration";
 import { writeFileSync } from "fs";
 import * as path from 'path';
+import { extractAppUrl } from "../deviantart/scrapers/legacydeviationpage";
 
 @Description("Generate the embed for a deviation by UUID")
 @Permission("anyone")
@@ -79,24 +81,15 @@ export class Embed implements Command {
             if(response.statusCode != 200) {
                 return env.reply("Couldn't fetch that.");
             }
-            let tree = p5.parse(response.body);
-            let links = HtmlTools.getMeta(tree, "da:appurl");
-            if(links.length == 0) {
+            
+            let $ = cheerio.load(response.body);
+            let legacyresult = extractAppUrl($);
+            if(legacyresult.result == "fail") {
                 writeFailedPage(response.body);
-                return env.reply("Couldn't find the deviation ID in the page.");
-            }
-            let linkvalue = links[0].attrs.find(i => i.name == "content");
-            if(!linkvalue) {
-                writeFailedPage(response.body);
-                return env.reply("Couldn't find the deviation ID in the page.");
-            }
-            let linkurl = tryParseURL(linkvalue.value);
-            if(!linkurl) {
-                writeFailedPage(response.body);
-                return env.reply("Page contained a malformed appurl.");
+                return env.reply(legacyresult.message);
             }
             else {
-                this.url = linkurl;
+                this.url = legacyresult.value;
             }
         }
 
