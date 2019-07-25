@@ -1,5 +1,6 @@
 import * as p5 from 'parse5';
 import cheerio from 'cheerio';
+import { truncate } from 'fs';
 
 export let emojiByDaEmoticon : Map<string, string> = new Map([
     ["https://e.deviantart.net/emoticons/b/biggrin.gif", "😀"],
@@ -26,17 +27,21 @@ function enforceTruncation(characters: number, lines: number, strings: IterableI
         if(buf.length + i.length > characters) { break; }
         buf += i;
     }
-    buf = buf.replace(/\n(\s*\n)+/g, "\n\n");
+    let compactedbuf = buf.replace(/\n(\s*\n)+/g, "\n\n").replace(/[ \t]+/g, " ");
     let count = 0;
-    let lastidx = buf.length;
-    for(let i = 0; i < buf.length; i++) {
-        if(buf[i] == "\n") { count++; }
+    let lastidx = compactedbuf.length;
+    for(let i = 0; i < compactedbuf.length; i++) {
+        if(compactedbuf[i] == "\n") { count++; }
         if(count > lines) {
             lastidx = i;
             break;
         }
     }
-    return buf.slice(0, lastidx);
+    let truncated = compactedbuf.slice(0, lastidx);
+    if(compactedbuf.length - truncated.length > 3) {
+        truncated += "…";
+    }
+    return truncated;
 }
 
 function escapeText(txt : string) {
@@ -49,7 +54,7 @@ export function daHtmlToDfm(input: string) {
 
     let inbody = $("body");
 
-    return(enforceTruncation(768, 15, convertElement(inbody)));
+    return(enforceTruncation(768, 8, convertElement(inbody)));
 }
 
 function *convertElement(el: Cheerio) : IterableIterator<string> {
