@@ -88,7 +88,7 @@ function *convertElement(el: Cheerio) : IterableIterator<string> {
 }
 
 function* convertChildren(parent: Cheerio) : IterableIterator<string> {
-    let childs = parent.children();
+    let childs = parent.contents();
     for(let i = 0; i < childs.length; i++) {
         let el = childs[i];
         switch(el.type) {
@@ -96,7 +96,7 @@ function* convertChildren(parent: Cheerio) : IterableIterator<string> {
                 yield escapeText(el.data || "");
                 break;
             case "tag":
-                yield* convertChildren(cheerio(el));
+                yield* convertElement(cheerio(el));
                 break;
         }
     }
