@@ -26,7 +26,7 @@ function enforceTruncation(characters: number, lines: number, strings: IterableI
         if(buf.length + i.length > characters) { break; }
         buf += i;
     }
-    buf = buf.replace(/\n\n\n+/, "\n\n");
+    buf = buf.replace(/\n(\s*\n)+/g, "\n\n");
     let count = 0;
     let lastidx = buf.length;
     for(let i = 0; i < buf.length; i++) {
@@ -40,7 +40,7 @@ function enforceTruncation(characters: number, lines: number, strings: IterableI
 }
 
 function escapeText(txt : string) {
-    const reMagicSymbols = /[*_`<:~]/;
+    const reMagicSymbols = /[*_`<:~]/g;
     return txt.replace(reMagicSymbols, "\\$&");
 }
 
@@ -66,21 +66,30 @@ function *convertElement(el: Cheerio) : IterableIterator<string> {
             yield escapeText(m[1])
         }
         else if(src && src.startsWith(DA_EMOTICON_SERVER)) {
-            yield escapeText(alt);
+            let replaced = emojiByDaEmoticon.get(src);
+            if(replaced) {
+                yield replaced;
+            }
+            else {
+                yield escapeText(alt);
+            }
         }
         else {
             yield "[image]";
         }
     }
-    else if(el.is("em") || el.is("i")) {
+    else if(el.is("em") || el.is("i") && el.text() != "") {
         yield "_";
         yield* convertChildren(el);
         yield "_";
     }
-    else if(el.is("strong") || el.is("b")) {
+    else if(el.is("strong") || el.is("b") && el.text() != "") {
         yield "**";
         yield* convertChildren(el);
         yield "**";
+    }
+    else if(el.is("span[data-embed-type]")) {
+        yield `[${escapeText(el.attr("data-embed-type"))}]`;
     }
     else {
         yield* convertChildren(el);
