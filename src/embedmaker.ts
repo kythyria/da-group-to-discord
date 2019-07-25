@@ -1,7 +1,14 @@
 import { RichEmbed } from "discord.js";
 import * as dat from './deviantart/api/datatypes';
 import { daHtmlToDfm } from './formatconverter';
-import { DEVIANTART_ICON, DISCORD_MAX_EMBED_DESCRIPTION } from "./constants";
+import { DEVIANTART_ICON, DISCORD_MAX_EMBED_DESCRIPTION, DEVIANTART_NOENTRY_PREFIX } from "./constants";
+import {
+    DeviationInfo as EclipseDeviation,
+    DeviationExtended as EclipseDeviationExtended,
+    AuthorInfo as EclipseAuthor,
+    FileInfo as EclipseFile
+} from "./deviantart/scrapers/eclipsedeviationpage";
+
 
 export interface makeEmbedOpts {
     metadata? : dat.DeviationMetadata,
@@ -62,6 +69,41 @@ export function makeEmbedForDeviation(devinfo : dat.DeviationInfo, options: make
         desc = desc.slice(0, DISCORD_MAX_EMBED_DESCRIPTION) + "...";
     }
     embed.setDescription(desc);
+
+    return embed;
+}
+
+function collateFileInfo(left: EclipseFile, right: EclipseFile) : number {
+    if (left.width > right.width) { return -1; }
+    if (left.width < right.width) { return 1; }
+    
+    if(left.type == "fullview" && right.type != "fullview") { return -1; }
+    if(left.type != "fullview" && right.type == "fullview") { return 1; }
+
+    return 0;
+}
+
+export function makeEmbedForEclipseData(deviation: EclipseDeviation, extended: EclipseDeviationExtended, author: EclipseAuthor, postedWhere?: string) : RichEmbed {
+    let embed = new RichEmbed();
+
+    embed.setTimestamp(new Date(deviation.publishedTime));
+
+    postedWhere = postedWhere || "deviantART";
+    embed.setFooter(`Posted to ${postedWhere}`, DEVIANTART_ICON);
+
+    embed.setAuthor(author.username, author.usericon);
+    embed.setTitle(deviation.title);
+    embed.setURL(deviation.url);
+    
+    let ordered = deviation.files
+        .filter(i => !i.src.startsWith(DEVIANTART_NOENTRY_PREFIX))
+        .sort(collateFileInfo);
+    
+    if(ordered.length > 0) {
+        embed.setImage(ordered[0].src);
+    }
+
+    embed.setDescription(daHtmlToDfm(extended.description));
 
     return embed;
 }

@@ -2,20 +2,20 @@ import { Description, Permission, Command, Ambient, Positional, UUIDParam, URLPa
 import * as da from '../deviantart/api';
 import * as dt from '../deviantart/api/datatypes'
 import { inspect } from "util";
-import { makeEmbedForDeviation, makeEmbedOpts } from '../embedmaker'
+import { makeEmbedForDeviation, makeEmbedOpts, makeEmbedForEclipseData } from '../embedmaker'
 import { DiscordCommandEnvironment } from "../commandsystem/discordfrontend";
 import { URL } from "url";
 import request from 'request-promise-native';
-import * as p5 from 'parse5';
-import * as HtmlTools from '../htmltools';
-import { tryParseURL, isUuid } from "../util";
+import { isUuid } from "../util";
 import { CommandRegistry } from "../commandsystem/registry";
 import * as cheerio from 'cheerio';
 
 import { readConfig } from "../configuration";
-import { writeFileSync } from "fs";
+import { writeFileSync, promises } from "fs";
 import * as path from 'path';
 import { extractAppUrl } from "../deviantart/scrapers/legacydeviationpage";
+import { Result, BasicError, succeed } from "../result";
+import { extractRawData } from "../deviantart/scrapers/eclipsedeviationpage";
 
 @Description("Generate the embed for a deviation by UUID")
 @Permission("anyone")
@@ -69,7 +69,11 @@ export class Embed implements Command {
     url!: URL;
 
     async run(env: DiscordCommandEnvironment) : Promise<void> {
-        let deviationid: string;
+        let res1 = await this.handleDaUrl(this.url, env);
+        if(res1.result == "success") {
+            return;
+        }
+
         if((this.url.protocol == "https:" || this.url.protocol == "http:")
          && (this.url.host.endsWith(".deviantart.com") || this.url.host == "fav.me")) {
             let response : request.FullResponse = await request({
@@ -84,27 +88,51 @@ export class Embed implements Command {
             
             let $ = cheerio.load(response.body);
             let legacyresult = extractAppUrl($);
-            if(legacyresult.result == "fail") {
-                writeFailedPage(response.body);
-                return env.reply(legacyresult.message);
+
+            if(legacyresult.result == "success") {
+                let res2 = await this.handleDaUrl(legacyresult.value, env);
+                if(res2.result == "success") {
+                    return;
+                }
+                else {
+                    return env.reply(res2.message);
+                }
             }
-            else {
-                this.url = legacyresult.value;
+
+            let eclipseResult = extractRawData($);
+
+            if(eclipseResult.result == "success") {
+                let ev = eclipseResult.value;
+                let emb = makeEmbedForEclipseData(ev.deviation, ev.extended, ev.author);
+                let message = `<${ev.deviation.url}>`;
+                return env.reply(message, emb);
             }
+            
+            let message = `Legacy extract failed: ${legacyresult.message}\n` +
+                `Eclipse extract failed: ${eclipseResult.message}`;
+            return env.reply(message);
         }
 
+        let res2 = await this.handleDaUrl(this.url, env);
+        if(res2.result == "success") {
+            return;
+        }
+    }
+
+    async handleDaUrl(url: URL, env: DiscordCommandEnvironment) : Promise<Result<void>> {
+        let deviationid: string;
         if(this.url.protocol == "deviantart:") {
             if(this.url.hostname != "deviation") {
-                return env.reply("I currently only understand deviation URLs");
+                return new BasicError("I currently only understand deviation URLs");
             }
 
             deviationid = this.url.pathname.substring(1);
             if(!isUuid(deviationid)) {
-                return env.reply("This isn't a well-formed deviantart URL");
+                return new BasicError("This isn't a well-formed deviantart URL");
             }
         }
         else {
-            return env.reply("This isn't a well-formed deviantart URL");
+            return new BasicError("This isn't a well-formed deviantart URL");
         }
 
         let result = await this.commandRegistry.invoke(
@@ -115,5 +143,6 @@ export class Embed implements Command {
         if(result.result == "fail") {
             throw new Error("Somehow invoking the Embed command failed");
         }
+        return succeed(void 0);
     }
 }
