@@ -95,7 +95,7 @@ export class Embed implements Command {
                     return;
                 }
                 else {
-                    return env.reply(res2.message);
+                    legacyresult = res2;
                 }
             }
 
@@ -110,6 +110,7 @@ export class Embed implements Command {
             
             let message = `Legacy extract failed: ${legacyresult.message}\n` +
                 `Eclipse extract failed: ${eclipseResult.message}`;
+            writeFailedPage(response.body);
             return env.reply(message);
         }
 
