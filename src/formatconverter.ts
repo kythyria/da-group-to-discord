@@ -28,6 +28,7 @@ function enforceTruncation(characters: number, lines: number, strings: IterableI
         buf += i;
     }
     let compactedbuf = buf.replace(/\n(\s*\n)+/g, "\n\n").replace(/[ \t]+/g, " ");
+    buf.replace(/([^\n])\n([^\n])/g, "$1\n  $2");
     let count = 0;
     let lastidx = compactedbuf.length;
     for(let i = 0; i < compactedbuf.length; i++) {
@@ -83,22 +84,49 @@ function *convertElement(el: Cheerio) : IterableIterator<string> {
             yield "[image]";
         }
     }
-    else if(el.is("em") || el.is("i") && el.text() != "") {
-        yield "_";
-        yield* convertChildren(el);
-        yield "_";
+    else if(el.is("em") || el.is("i")) {
+        yield* convertFormat(el, "_");
     }
-    else if(el.is("strong") || el.is("b") && el.text() != "") {
-        yield "**";
-        yield* convertChildren(el);
-        yield "**";
+    else if(el.is("strong") || el.is("b")) {
+        yield* convertFormat(el, "**");
     }
     else if(el.is("span[data-embed-type]")) {
         yield `[${escapeText(el.attr("data-embed-type"))}]`;
     }
+    else if(el.is("div")) {
+        yield "\n";
+        yield* convertChildren(el);
+    }
     else {
         yield* convertChildren(el);
     }
+}
+
+function* convertFormat(el: Cheerio, delim: string) : IterableIterator<string> {
+    if(el.text() == "") { return; }
+
+    let contents = el.contents();
+    
+    let firstChild = contents[0];
+    if(firstChild.type == "text" && firstChild.data) {
+        let m = /^\s+/.exec(firstChild.data);
+        if(m) {
+            firstChild.data = firstChild.data.substring(m[0].length);
+            el.before(m[0]);
+        }
+    }
+
+    let lastChild = contents[contents.length-1];
+    if(lastChild.type == "text" && lastChild.data) {
+        let m = /^\s+/.exec(lastChild.data);
+        if(m) {
+            lastChild.data = lastChild.data.substring(m[0].length);
+            el.after(m[0]);
+        }
+    }
+    yield delim;
+    yield* convertChildren(el);
+    yield delim;
 }
 
 function* convertChildren(parent: Cheerio) : IterableIterator<string> {
