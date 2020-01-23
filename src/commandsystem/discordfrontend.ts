@@ -99,7 +99,7 @@ export class DiscordCommandFrontend {
     async onMessage(msg: Message) : Promise<void> {
         let msgtext = msg.content;
 
-        let mentionMatch = /^<@(\d+)>[:,]? /i.exec(msgtext);
+        let mentionMatch = /^<@!?(\d+)>[:,]? /i.exec(msgtext);
         
         if(mentionMatch && mentionMatch[1] == this._myuid) {
             msgtext = msgtext.substr(mentionMatch[0].length);
