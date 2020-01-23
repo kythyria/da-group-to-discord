@@ -6,7 +6,8 @@ import {
     DeviationInfo as EclipseDeviation,
     DeviationExtended as EclipseDeviationExtended,
     AuthorInfo as EclipseAuthor,
-    FileInfo as EclipseFile
+    FileInfo as EclipseFile,
+    MediaInfoEntry
 } from "./deviantart/scrapers/eclipsedeviationpage";
 
 
@@ -83,6 +84,16 @@ function collateFileInfo(left: EclipseFile, right: EclipseFile) : number {
     return 0;
 }
 
+function collateMediaInfoEntry(left: MediaInfoEntry, right: MediaInfoEntry) : number {
+    if (left.w > right.w) { return -1; }
+    if (left.w < right.w) { return 1; }
+    
+    if(left.t == "fullview" && right.t != "fullview") { return -1; }
+    if(left.t != "fullview" && right.t == "fullview") { return 1; }
+
+    return 0;
+}
+
 export function makeEmbedForEclipseData(deviation: EclipseDeviation, extended: EclipseDeviationExtended, author: EclipseAuthor, postedWhere?: string) : RichEmbed {
     let embed = new RichEmbed();
 
@@ -95,12 +106,36 @@ export function makeEmbedForEclipseData(deviation: EclipseDeviation, extended: E
     embed.setTitle(deviation.title);
     embed.setURL(deviation.url);
     
-    let ordered = deviation.files
-        .filter(i => !i.src.startsWith(DEVIANTART_NOENTRY_PREFIX))
-        .sort(collateFileInfo);
+    let url : string | undefined;
+    if(deviation.files) {
+        let ordered = deviation.files
+            .filter(i => !i.src.startsWith(DEVIANTART_NOENTRY_PREFIX))
+            .sort(collateFileInfo)
+            .map(i => i.src);
+        if(ordered[0]) {
+            url = ordered[0];
+        }
+    }
+    else if(deviation.media) {
+        let types = deviation.media.types
+            .filter(i => !(i.s && i.s.startsWith(DEVIANTART_NOENTRY_PREFIX)))
+            .sort(collateMediaInfoEntry);
+        if(types[0].s) {
+            url = types[0].s;
+        }
+        else if (types[0].c) {
+            let c = types[0].c
+                .replace(/q_\d+,/, "q_100,")
+                .replace("<prettyName>", deviation.media.prettyName);
+            url = deviation.media.baseUri + "/" + c + "?token=" + deviation.media.token;
+        }
+        else {
+            throw new Error("Deviation mediainfo structure changed again!");
+        }
+    }
     
-    if(ordered.length > 0) {
-        embed.setImage(ordered[0].src);
+    if(url) {
+        embed.setImage(url);
     }
 
     embed.setDescription(daHtmlToDfm(extended.description));

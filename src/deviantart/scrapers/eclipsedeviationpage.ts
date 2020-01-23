@@ -26,6 +26,7 @@ export interface DeviationInfo {
     author: number,
     stats: { comments: number, favourites: number },
     files: FileInfo[],
+    media: MediaInfo,
     extended: number,
     entityId: number
 }
@@ -76,6 +77,21 @@ export interface FileInfo {
     transparency?: boolean,
     isDefault?: boolean,
     filesize?: number
+}
+
+export interface MediaInfo {
+    baseUri: string,
+    prettyName: string,
+    token: string[],
+    types: MediaInfoEntry[]
+}
+export interface MediaInfoEntry {
+    c?: string,
+    h: number,
+    r: number,
+    t: string,
+    w: number,
+    s?: string
 }
 
 export interface RelatedCollectionInfo {
