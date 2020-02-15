@@ -118,16 +118,17 @@ export function makeEmbedForEclipseData(deviation: EclipseDeviation, extended: E
     }
     else if(deviation.media) {
         let types = deviation.media.types
-            .filter(i => !(i.s && i.s.startsWith(DEVIANTART_NOENTRY_PREFIX)))
+            .filter(i => i.c || (i.s && !i.s.startsWith(DEVIANTART_NOENTRY_PREFIX)))
             .sort(collateMediaInfoEntry);
         if(types[0].s) {
             url = types[0].s;
         }
         else if (types[0].c) {
+            let token = typeof deviation.media.token == "string" ? deviation.media.token : deviation.media.token[types[0].r];
             let c = types[0].c
                 .replace(/q_\d+,/, "q_100,")
                 .replace("<prettyName>", deviation.media.prettyName);
-            url = deviation.media.baseUri + "/" + c + "?token=" + deviation.media.token;
+            url = deviation.media.baseUri + "/" + c + "?token=" + token;
         }
         else {
             throw new Error("Deviation mediainfo structure changed again!");
