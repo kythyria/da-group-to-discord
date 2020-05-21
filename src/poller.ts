@@ -127,7 +127,6 @@ export class Poller {
     async poll() : Promise<void> {
         console.log("Polling...");
         let startTime = Date.now();
-        this.startTyping();
 
         let stats = await this._logThing.catch("poll", this.pollWork());
 
@@ -137,8 +136,7 @@ export class Poller {
                 ...stats,
                 time: { value: Date.now() - startTime, coalesces: true }
             }
-        })
-        this.stopTyping();
+        });
     }
 
     async pollWork() : Promise<LogStatistics> {
@@ -272,22 +270,6 @@ export class Poller {
         }
 
         return Promise.resolve(output);
-    }
-
-    startTyping() : void {
-        let chans = unique(this._conf.notifyMappings.map(i => i.channel));
-        for (let i of chans) {
-            let chan = getChannel(this._discord, i);
-            if(chan) { chan.startTyping(); }
-        }
-    }
-
-    stopTyping() : void {
-        let chans = unique(this._conf.notifyMappings.map(i => i.channel));
-        for (let i of chans) {
-            let chan = getChannel(this._discord, i);
-            if(chan) { chan.stopTyping(true); }
-        }
     }
 
     async populateCollectionNames() : Promise<void> {
