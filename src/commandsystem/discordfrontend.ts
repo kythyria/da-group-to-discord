@@ -118,9 +118,9 @@ export class DiscordCommandFrontend {
         let url = tryParseURL(msgtext);
         if(url) {
             command = "embed";
+            argv = [msgtext];
         }
-        
-        if(msgtext.trim() == "") {
+        else if(msgtext.trim() == "") {
             command = "ping";
             argv = [];
         }
