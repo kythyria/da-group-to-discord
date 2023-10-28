@@ -4,6 +4,7 @@ import { CommandRegistry, InvokeFailure } from "./registry";
 import { tryParseURL } from "../util";
 import { DISCORD_MESSAGE_CAP } from "../constants";
 import { DiscordLogThing, LogMessage } from "../discordlogthing";
+import { URL } from "url";
 
 export interface DiscordCommandEnvironment extends CommandEnvironment {
     reply(msg: string, embed?: RichEmbed) : Promise<void>;
@@ -111,8 +112,14 @@ export class DiscordCommandFrontend {
         if(!mentionMatch && msg.channel.type != "dm") {
             return;
         }
-        
+
         let command: string, argv: string[];
+
+        let url = tryParseURL(msgtext);
+        if(url) {
+            command = "embed";
+        }
+        
         if(msgtext.trim() == "") {
             command = "ping";
             argv = [];
@@ -131,7 +138,7 @@ export class DiscordCommandFrontend {
                     this.printInvokeError(env, result);
                 }
             }
-            catch(err) {
+            catch(err: any) {
                 let channelname = msg.channel.id;
                 if(msg.channel.type == "dm") {
                     channelname = "DM";
