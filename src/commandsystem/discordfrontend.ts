@@ -138,7 +138,7 @@ export class DiscordCommandFrontend {
                     this.printInvokeError(env, result);
                 }
             }
-            catch(err: any) {
+            catch(err) {
                 let channelname = msg.channel.id;
                 if(msg.channel.type == "dm") {
                     channelname = "DM";
@@ -147,7 +147,7 @@ export class DiscordCommandFrontend {
                     let tc = msg.channel as TextChannel;
                     channelname = `${tc.guild.name} - ${tc.name}`;
                 }
-                throw Object.assign(err, {
+                throw Object.assign(err as any, {
                     commandline: msg.content,
                     invoker: `@${msg.author.username}#${msg.author.discriminator} (${msg.author.id})`,
                     channel: channelname,               
