@@ -365,6 +365,8 @@ export class DiscordPollLog {
         }
         this.last_new = curr_ts;
 
+        if(this.posted_today == 0 && remaining == 0) { return; }
+
         let embed = this.buildLogEmbed(remaining, this.posted_today, this.last_new);
         if(this.previous_message) {
             await this.previous_message.edit(this.previous_message.content, {
