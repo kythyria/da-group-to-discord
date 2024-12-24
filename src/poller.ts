@@ -8,6 +8,7 @@ import { IdCache } from "./idcache";
 import { makeEmbedForDeviation } from "./embedmaker";
 import { DiscordLogThing, LogStatistics } from "./discordlogthing";
 import { format } from "util";
+import { DEVIANTART_ICON } from "./constants";
 
 interface PollWorkItem {
     username: string,
@@ -62,7 +63,7 @@ function getChannel(discord : Discord.Client, key: string) : Discord.TextChannel
  *   Save the ID cache // here so that a crash doesn't eat anything. At-least-once rather than at-most-once
  */
 
- const COLLECTION_NAME_UPDATE_INTERVAL = 4
+const COLLECTION_NAME_UPDATE_INTERVAL = 4
 
 export class Poller {
     _conf : conf.ConfigFile;
@@ -73,8 +74,9 @@ export class Poller {
     _collectionNameTimer: number;
     _timer? : NodeJS.Timer;
     _logThing : DiscordLogThing;
+    _statusRecorder : DiscordPollLog;
 
-    constructor(config : conf.ConfigFile, discord : Discord.Client, deviantart : da.Api, logThing : DiscordLogThing) {
+    constructor(config : conf.ConfigFile, discord : Discord.Client, deviantart : da.Api, logThing : DiscordLogThing, statusRecorder: DiscordPollLog) {
         this._conf = config;
         this._discord = discord;
         this._da = deviantart;
@@ -84,7 +86,8 @@ export class Poller {
 
         this._collectionNames = new Map();
         this._collectionNameTimer = 0;
-        this._logThing = logThing
+        this._logThing = logThing;
+        this._statusRecorder = statusRecorder;
     }
 
     buildWorkList() : Map<string, PollWorkItem> {
@@ -111,32 +114,33 @@ export class Poller {
     start() : void {
         this.stop();
         if(!this._timer) {
-            this._logThing.log("Starting poll timer");
+            console.log("Starting poll timer");
             this._timer = this._discord.setInterval(this.poll.bind(this), this._conf.pollInterval);
         }
     }
 
     stop() : void {
         if(this._timer) {
-            this._logThing.log("Stopping poll timer")
+            console.log("Stopping poll timer")
             this._discord.clearInterval(this._timer);
             this._timer = undefined;
         }
     }
 
     async poll() : Promise<void> {
-        console.log("Polling...");
+        //console.log("Polling");
         let startTime = Date.now();
 
         let stats = await this._logThing.catch("poll", this.pollWork());
 
-        this._logThing.submitLogItem({
+        console.log(`Poll ended (new: ${stats["newItems"].value}, posted: ${stats["posted"].value}, time: ${Date.now() - startTime})`);
+        /*this._logThing.submitLogItem({
             short: "Poll ended",
             statistics: {
                 ...stats,
                 time: { value: Date.now() - startTime, coalesces: true }
             }
-        });
+        });*/
     }
 
     async pollWork() : Promise<LogStatistics> {
@@ -187,6 +191,7 @@ export class Poller {
             await this._cache.save();
             stats.posted.value++;
         }
+        this._statusRecorder.update(stats.newItems.value - withEmbeds.length, withEmbeds.length);
 
         return stats;
     }
@@ -308,5 +313,83 @@ export class Poller {
             }
         }
         this._collectionNameTimer = COLLECTION_NAME_UPDATE_INTERVAL;
+    }
+}
+
+export class DiscordPollLog {
+    discord: Discord.Client;
+    logTo : string;
+    ts_fmt: Intl.DateTimeFormat;
+    previous_message?: Discord.Message;
+    posted_today: number;
+    last_new: Date;
+
+    constructor(discord: Discord.Client, logTo : string) {
+        this.discord = discord;
+        this.logTo = logTo;
+        this.ts_fmt = new Intl.DateTimeFormat("en-gb", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+            timeZone: "UTC",
+            timeZoneName: "short",
+        });
+        this.posted_today = 0;
+        this.last_new = new Date();
+    }
+
+    buildLogEmbed(posted: number, to_post: number, last_new: Date) {
+        return new Discord.RichEmbed({
+            title: "Deviantart group relay",
+            description: `Posted today: ${posted}\nRemaining to post: ${to_post}`,
+            footer: {
+                text: `Last new item seen at ${this.ts_fmt.format(last_new)}`,
+                icon_url: DEVIANTART_ICON
+            }
+        });
+    }
+
+    update(remaining: number, newly_posted: number) {
+        let prev_ts = this.previous_message?.createdAt;
+        let curr_ts = new Date();
+        if(!prev_ts || prev_ts.getDay() != curr_ts.getUTCDay()) {
+            this.previous_message = undefined;
+            this.posted_today = newly_posted;
+        }
+        else {
+            this.posted_today += newly_posted;
+        }
+        this.last_new = curr_ts;
+
+        let embed = this.buildLogEmbed(remaining, this.posted_today, this.last_new);
+        if(this.previous_message) {
+            this.previous_message.edit(this.previous_message.content, {
+                embed: embed
+            });
+        }
+        else {
+            let logChannelRaw = this.discord.channels.get(this.logTo);
+            if(!logChannelRaw) {
+                throw new Error("Log channel doesn't exist");
+            }
+            let logChannel : Discord.TextBasedChannelFields;
+            if(logChannelRaw.type == "text") {
+                logChannel = <Discord.TextChannel>logChannelRaw;
+            }
+            else if (logChannelRaw.type == "dm") {
+                logChannel = <Discord.DMChannel>logChannelRaw;
+            }
+            else {
+                throw new Error("Log channel isn't postable to");
+            }
+
+            logChannel.send("", {
+                embed: embed
+            });
+        }
     }
 }

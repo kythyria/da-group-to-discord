@@ -1,7 +1,7 @@
 import * as Deviantart from './deviantart/api';
 import { readConfig } from './configuration';
 import * as Discord from 'discord.js';
-import { Poller } from './poller';
+import { Poller, DiscordPollLog } from './poller';
 import { CommandRegistry } from './commandsystem/registry';
 import { DiscordCommandFrontend } from './commandsystem/discordfrontend';
 import requireDir from 'require-dir';
@@ -17,7 +17,8 @@ let discord = new Discord.Client({
     messageSweepInterval: 20
 });
 let logthing = new DiscordLogThing(discord, config.logChannel);
-let poller = new Poller(config, discord, da, logthing);
+let logthing2 = new DiscordPollLog(discord, config.logChannel);
+let poller = new Poller(config, discord, da, logthing, logthing2);
 
 let commandRegistry = new CommandRegistry();
 commandRegistry.registerDirectory(requireDir('./commands'));
@@ -48,7 +49,7 @@ discord.on("ready", async () => {
 
     console.log(`Join URL: https://discordapp.com/api/oauth2/authorize?client_id=${appinfo.id}&scope=bot`);
     try {
-        logthing.log("Started!")
+        //logthing.log("Started!")
     }
     catch(e) {
         console.log("Couldn't send a message to the log channel.");

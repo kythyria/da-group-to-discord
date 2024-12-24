@@ -32,7 +32,7 @@ export class EmbedDeviation implements Command {
             response = await this.deviantart.getDeviation(this.devId);
         }
         catch(e) {
-            return env.reply("API call failed:\n```JSON\n" + inspect(e.response.body, { compact: false }) + "\n```");
+            return env.reply("API call failed:\n```JSON\n" + inspect((e as any).response.body, { compact: false }) + "\n```");
         }
         let message = `<${response.url}>`
         let embedopts : makeEmbedOpts = {}
@@ -42,7 +42,7 @@ export class EmbedDeviation implements Command {
             embedopts.metadata = metadataResponse.metadata[0];
         }
         catch(e) {
-            message = `<${response.url}>\nCould not fetch deviation metadata:\n\`\`\`JSON\n${inspect(e.response.body, { compact: false })}\n\`\`\``;
+            message = `<${response.url}>\nCould not fetch deviation metadata:\n\`\`\`JSON\n${inspect((e as any).response.body, { compact: false })}\n\`\`\``;
         }
         let embed = makeEmbedForDeviation(response, embedopts);
 
