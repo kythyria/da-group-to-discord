@@ -191,7 +191,7 @@ export class Poller {
             await this._cache.save();
             stats.posted.value++;
         }
-        this._statusRecorder.update(stats.newItems.value - withEmbeds.length, withEmbeds.length);
+        await this._statusRecorder.update(stats.newItems.value - withEmbeds.length, withEmbeds.length);
 
         return stats;
     }
@@ -353,7 +353,7 @@ export class DiscordPollLog {
         });
     }
 
-    update(remaining: number, newly_posted: number) {
+    async update(remaining: number, newly_posted: number) {
         let prev_ts = this.previous_message ? this.previous_message.createdAt : undefined;
         let curr_ts = new Date();
         if(!prev_ts || prev_ts.getDay() != curr_ts.getUTCDay()) {
@@ -367,7 +367,7 @@ export class DiscordPollLog {
 
         let embed = this.buildLogEmbed(remaining, this.posted_today, this.last_new);
         if(this.previous_message) {
-            this.previous_message.edit(this.previous_message.content, {
+            await this.previous_message.edit(this.previous_message.content, {
                 embed: embed
             });
         }
@@ -387,9 +387,11 @@ export class DiscordPollLog {
                 throw new Error("Log channel isn't postable to");
             }
 
-            logChannel.send("", {
+            let msgs = await logChannel.send("", {
                 embed: embed
             });
+            if(msgs instanceof Array) { this.previous_message = msgs[0]; }
+            else { this.previous_message = msgs; }
         }
     }
 }
