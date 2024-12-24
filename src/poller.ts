@@ -354,7 +354,7 @@ export class DiscordPollLog {
     }
 
     update(remaining: number, newly_posted: number) {
-        let prev_ts = this.previous_message?.createdAt;
+        let prev_ts = this.previous_message ? this.previous_message.createdAt : undefined;
         let curr_ts = new Date();
         if(!prev_ts || prev_ts.getDay() != curr_ts.getUTCDay()) {
             this.previous_message = undefined;
